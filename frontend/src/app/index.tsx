@@ -1,22 +1,5 @@
-import { StyleSheet, View, Text } from 'react-native';
+import LandingPage from './signin/LandingPage';
 
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.testText}>Testing</Text>
-    </View>
-  );
+  return <LandingPage />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  testText: {
-    color: "black",
-    fontSize: 20,
-  },
-});
