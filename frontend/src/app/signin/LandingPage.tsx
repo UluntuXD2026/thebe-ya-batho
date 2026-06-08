@@ -44,7 +44,12 @@ const Logo: React.FC = () => (
   </View>
 );
 
-const LandingPage: React.FC = () => {
+type LandingPageProps = {
+  onSignIn?: () => void;
+  onCreateAccount?: () => void;
+};
+
+const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onCreateAccount }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const btnAnim = useRef(new Animated.Value(0)).current;
@@ -72,13 +77,11 @@ const LandingPage: React.FC = () => {
   }, []);
 
   const handleCreateAccount = () => {
-    // navigation.navigate('Register');
-    console.log('Create Account pressed');
+    onCreateAccount?.();
   };
 
   const handleSignIn = () => {
-    // navigation.navigate('Login');
-    console.log('Sign In pressed');
+    onSignIn?.();
   };
 
   return (
