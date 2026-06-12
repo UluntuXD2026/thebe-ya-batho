@@ -20,8 +20,17 @@ import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+import CommunityPage from './community/CommunityPage';
+import InboxPage from './community/InboxPage';
+import HelpMeScreen from './emergency/HelpMeScreen';
+import SOSScreen from './emergency/SOSScreen';
+import HomePage from './homepage/HomePage';
+import EmergencyRequestScreen from './responder/EmergencyRequestScreen';
+import BiometricSignInPage from './signin/BiometricSignInPage';
 import LandingPage from './signin/LandingPage';
+import SignInOTPPage from './signin/SignInOTPPage';
 import SignInPage from './signin/SignInPage';
+import SignInSuccessPage from './signin/SignInSuccessPage';
 import SignUpPage from './signin/SignUpPage';
 import AccountCreatedPage from './signup/AccountCreatedPage';
 import OTPVerificationPage from './signup/OTPVerificationPage';
@@ -31,11 +40,20 @@ import PersonalDetailsPage from './signup/PersonalDetailsPage';
 type ScreenKey =
   | 'LandingPage'
   | 'SignInPage'
+  | 'SignInOTPPage'
+  | 'BiometricSignInPage'
+  | 'SignInSuccessPage'
   | 'SignUpPage'
   | 'OTPVerificationPage'
   | 'PersonalDetailsPage'
   | 'PermissionRequestPage'
-  | 'AccountCreatedPage';
+  | 'AccountCreatedPage'
+  | 'HomePage'
+  | 'CommunityPage'
+  | 'InboxPage'
+  | 'HelpMeScreen'
+  | 'SOSScreen'
+  | 'EmergencyRequestScreen';
 
 const SCREEN_GROUPS = [
   {
@@ -43,6 +61,9 @@ const SCREEN_GROUPS = [
     screens: [
       { key: 'LandingPage' as ScreenKey, label: 'Landing Page' },
       { key: 'SignInPage' as ScreenKey, label: 'Sign In' },
+      { key: 'SignInOTPPage' as ScreenKey, label: 'Sign In OTP' },
+      { key: 'BiometricSignInPage' as ScreenKey, label: 'Biometric Sign In' },
+      { key: 'SignInSuccessPage' as ScreenKey, label: 'Sign In Success' },
       { key: 'SignUpPage' as ScreenKey, label: 'Sign Up' },
     ],
   },
@@ -55,6 +76,30 @@ const SCREEN_GROUPS = [
       { key: 'AccountCreatedPage' as ScreenKey, label: 'Account Created' },
     ],
   },
+  {
+    folder: 'homepage/',
+    screens: [{ key: 'HomePage' as ScreenKey, label: 'Home Page' }],
+  },
+  {
+    folder: 'community/',
+    screens: [
+      { key: 'CommunityPage' as ScreenKey, label: 'Community' },
+      { key: 'InboxPage' as ScreenKey, label: 'Inbox' },
+    ],
+  },
+  {
+    folder: 'emergency/',
+    screens: [
+      { key: 'HelpMeScreen' as ScreenKey, label: 'Help Me' },
+      { key: 'SOSScreen' as ScreenKey, label: 'SOS' },
+    ],
+  },
+  {
+    folder: 'responder/',
+    screens: [
+      { key: 'EmergencyRequestScreen' as ScreenKey, label: 'Emergency Request' },
+    ],
+  },
 ];
 
 function renderScreen(key: ScreenKey, onBack: () => void) {
@@ -63,6 +108,12 @@ function renderScreen(key: ScreenKey, onBack: () => void) {
       return <LandingPage />;
     case 'SignInPage':
       return <SignInPage onBack={onBack} />;
+    case 'SignInOTPPage':
+      return <SignInOTPPage />;
+    case 'BiometricSignInPage':
+      return <BiometricSignInPage />;
+    case 'SignInSuccessPage':
+      return <SignInSuccessPage />;
     case 'SignUpPage':
       return <SignUpPage onSignIn={onBack} />;
     case 'OTPVerificationPage':
@@ -73,6 +124,18 @@ function renderScreen(key: ScreenKey, onBack: () => void) {
       return <PermissionRequestPage />;
     case 'AccountCreatedPage':
       return <AccountCreatedPage />;
+    case 'HomePage':
+      return <HomePage />;
+    case 'CommunityPage':
+      return <CommunityPage />;
+    case 'InboxPage':
+      return <InboxPage />;
+    case 'HelpMeScreen':
+      return <HelpMeScreen onCancel={onBack} />;
+    case 'SOSScreen':
+      return <SOSScreen onCancel={onBack} />;
+    case 'EmergencyRequestScreen':
+      return <EmergencyRequestScreen />;
   }
 }
 
