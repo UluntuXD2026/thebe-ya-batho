@@ -8,6 +8,7 @@ import {
   StatusBar,
   Animated,
   Platform,
+  Linking,
 } from 'react-native';
 
 import SOSScreen from './SOSScreen';
@@ -51,6 +52,7 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
   }, []);
 
   const handleSelect = (option: EmergencyOption) => {
+    Linking.openURL(`tel:${option.number}`);
     setShowSOS(true);
   };
 
