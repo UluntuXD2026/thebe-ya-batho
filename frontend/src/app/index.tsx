@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-import LandingPage from './signin/LandingPage';
-import SignInPage from './signin/SignInPage';
-import SignUpPage from './signin/SignUpPage';
-import SplashScreen from './signin/SplashScreenTemp';
+import LandingPage from '@/screens/signin/LandingPage';
+import SignInPage from '@/screens/signin/SignInPage';
+import SignUpPage from '@/screens/signin/SignUpPage';
+import SplashScreen from '@/screens/signin/SplashScreenTemp';
 
 type Screen = 'splash' | 'landing' | 'signin' | 'signup';
 

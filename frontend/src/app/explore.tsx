@@ -20,22 +20,22 @@ import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-import CommunityPage from './community/CommunityPage';
-import InboxPage from './community/InboxPage';
-import HelpMeScreen from './emergency/HelpMeScreen';
-import SOSScreen from './emergency/SOSScreen';
-import HomePage from './homepage/HomePage';
-import EmergencyRequestScreen from './responder/EmergencyRequestScreen';
-import BiometricSignInPage from './signin/BiometricSignInPage';
-import LandingPage from './signin/LandingPage';
-import SignInOTPPage from './signin/SignInOTPPage';
-import SignInPage from './signin/SignInPage';
-import SignInSuccessPage from './signin/SignInSuccessPage';
-import SignUpPage from './signin/SignUpPage';
-import AccountCreatedPage from './signup/AccountCreatedPage';
-import OTPVerificationPage from './signup/OTPVerificationPage';
-import PermissionRequestPage from './signup/PermissionRequestPage';
-import PersonalDetailsPage from './signup/PersonalDetailsPage';
+import CommunityPage from '@/screens/community/CommunityPage';
+import InboxPage from '@/screens/community/InboxPage';
+import HelpMeScreen from '@/screens/emergency/HelpMeScreen';
+import SOSScreen from '@/screens/emergency/SOSScreen';
+import HomePage from '@/screens/homepage/HomePage';
+import EmergencyRequestScreen from '@/screens/responder/EmergencyRequestScreen';
+import BiometricSignInPage from '@/screens/signin/BiometricSignInPage';
+import LandingPage from '@/screens/signin/LandingPage';
+import SignInOTPPage from '@/screens/signin/SignInOTPPage';
+import SignInPage from '@/screens/signin/SignInPage';
+import SignInSuccessPage from '@/screens/signin/SignInSuccessPage';
+import SignUpPage from '@/screens/signin/SignUpPage';
+import AccountCreatedPage from '@/screens/signup/AccountCreatedPage';
+import OTPVerificationPage from '@/screens/signup/OTPVerificationPage';
+import PermissionRequestPage from '@/screens/signup/PermissionRequestPage';
+import PersonalDetailsPage from '@/screens/signup/PersonalDetailsPage';
 
 type ScreenKey =
   | 'LandingPage'
