@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 const cors = require("cors")
 const User = require("./models/User");
 const authRoutes = require("./routes/auth");
+const contactRoutes = require("./routes/contacts")
+const emergencyRoutes = require("./routes/emergency")
+const notificationsRoutes = require("./routes/notifications")
 
 const app = express();
 const PORT = process.env.PORT;
@@ -36,6 +39,9 @@ app.delete("/delete", async(req, res) => {
 })
 
 app.use("/auth", authRoutes)
+app.use("/contacts", contactRoutes)
+app.use("/emergency", emergencyRoutes)
+app.use("/notifications", notificationsRoutes)
 
 app.listen(PORT, () => {
   console.log(`app is listening on port ${PORT}`);
