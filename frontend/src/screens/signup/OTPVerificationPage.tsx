@@ -71,12 +71,14 @@ interface Props {
   phoneNumber?: string; // e.g. "+27821234585"
   onVerified?: (token: string) => void;
   onBack?: () => void;
+  onResend?: (phoneNumber: string) => Promise<unknown>;
 }
 
 const OTPVerificationPage: React.FC<Props> = ({
   phoneNumber = '+27 82 ••• ••• 85',
   onVerified,
   onBack,
+  onResend = registerNumber,
 }) => {
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [seconds, setSeconds] = useState(107); // 1:47
@@ -154,7 +156,7 @@ const OTPVerificationPage: React.FC<Props> = ({
     setError('');
     inputRefs.current[0]?.focus();
     try {
-      await registerNumber(phoneNumber);
+      await onResend(phoneNumber);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend code');
     }

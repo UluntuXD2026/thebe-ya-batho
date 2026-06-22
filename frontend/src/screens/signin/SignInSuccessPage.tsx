@@ -56,12 +56,14 @@ interface Props {
   method?: 'OTP Verified' | 'Biometric' | 'Face ID';
   sessionExpiry?: string;
   locationShared?: string;
+  onFinish?: () => void;
 }
 
 const SignInSuccessPage: React.FC<Props> = ({
   method = 'OTP Verified',
   sessionExpiry = '8 hours',
   locationShared = 'Active',
+  onFinish,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -92,8 +94,7 @@ const SignInSuccessPage: React.FC<Props> = ({
   }, []);
 
   const handleGoToEmergency = () => {
-    // navigation.reset({ index: 0, routes: [{ name: 'EmergencyScreen' }] });
-    console.log('Navigating to Emergency Screen');
+    onFinish?.();
   };
 
   return (

@@ -293,7 +293,11 @@ const nav = StyleSheet.create({
 // ── Homepage ──────────────────────────────────────────────────────────────────
 type CommunityTab = 'New messages' | 'Chats' | 'Groups';
 
-const HomePage: React.FC = () => {
+interface Props {
+  firstName?: string;
+}
+
+const HomePage: React.FC<Props> = ({ firstName }) => {
   const [communityTab, setCommunityTab] = useState<CommunityTab>('New messages');
   const [showCommunity, setShowCommunity] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
@@ -342,7 +346,7 @@ const HomePage: React.FC = () => {
             <View style={styles.userRow}>
               <View style={styles.avatarWrap} />
               <View style={styles.userInfo}>
-                <Text style={styles.greeting}>Hi, Nyakallo</Text>
+                <Text style={styles.greeting}>Hi, {firstName || 'there'}</Text>
                 <View style={styles.onlineRow}>
                   <View style={styles.onlineDot} />
                   <Text style={styles.onlineText}>Online</Text>

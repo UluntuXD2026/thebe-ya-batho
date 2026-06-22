@@ -15,6 +15,8 @@ import {
   TextInputKeyPressEventData,
 } from 'react-native';
 
+import { verifyCode } from '../../lib/api';
+
 const COLORS = {
   primary: '#E8573A',
   primaryDark: '#C94428',
@@ -32,11 +34,21 @@ const CODE_LENGTH = 6;
 
 interface Props {
   phoneNumber?: string; // e.g. "+27_ _ _ _ _85"
+  onVerified?: (token: string, firstName?: string) => void;
+  onBack?: () => void;
+  onResend?: (phoneNumber: string) => Promise<unknown>;
 }
 
-const SignInOTPPage: React.FC<Props> = ({ phoneNumber = '+27_ _ _ _ _85' }) => {
+const SignInOTPPage: React.FC<Props> = ({
+  phoneNumber = '+27_ _ _ _ _85',
+  onVerified,
+  onBack,
+  onResend,
+}) => {
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [seconds, setSeconds] = useState(107);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -78,22 +90,38 @@ const SignInOTPPage: React.FC<Props> = ({ phoneNumber = '+27_ _ _ _ _85' }) => {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const fullCode = code.join('');
-    // navigation.navigate('SignInSuccess', { method: 'OTP' });
-    console.log('Verify & Sign In:', fullCode);
+    if (fullCode.length < CODE_LENGTH) {
+      setError('Enter the full 6-digit code');
+      return;
+    }
+    setError('');
+    setVerifying(true);
+    try {
+      const result = await verifyCode(phoneNumber, fullCode);
+      onVerified?.(result.token, result.firstName);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed');
+    } finally {
+      setVerifying(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setSeconds(107);
     setCode(Array(CODE_LENGTH).fill(''));
+    setError('');
     inputRefs.current[0]?.focus();
-    console.log('Resend code');
+    try {
+      await onResend?.(phoneNumber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code');
+    }
   };
 
   const handleBack = () => {
-    // navigation.goBack();
-    console.log('Go back');
+    onBack?.();
   };
 
   const handleCallInstead = () => {
@@ -155,6 +183,8 @@ const SignInOTPPage: React.FC<Props> = ({ phoneNumber = '+27_ _ _ _ _85' }) => {
               ))}
             </View>
 
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
+
             {/* ── Resend row ── */}
             <View style={styles.resendRow}>
               <Text style={styles.resendBase}>Didn't get code ? </Text>
@@ -165,11 +195,14 @@ const SignInOTPPage: React.FC<Props> = ({ phoneNumber = '+27_ _ _ _ _85' }) => {
 
             {/* ── Verify button ── */}
             <TouchableOpacity
-              style={styles.btnPrimary}
+              style={[styles.btnPrimary, verifying && styles.btnDisabled]}
               onPress={handleVerify}
               activeOpacity={0.85}
+              disabled={verifying}
             >
-              <Text style={styles.btnPrimaryText}>Verify & Sign In</Text>
+              <Text style={styles.btnPrimaryText}>
+                {verifying ? 'Verifying...' : 'Verify & Sign In'}
+              </Text>
             </TouchableOpacity>
 
             {/* ── Call me instead ── */}
@@ -243,6 +276,8 @@ const styles = StyleSheet.create({
   otpBoxEmpty: { backgroundColor: COLORS.pageBg },
   otpBoxFilled: { backgroundColor: COLORS.pageBg, borderColor: COLORS.darkGray },
 
+  errorText: { fontSize: 13, color: COLORS.primary, textAlign: 'center', marginBottom: 12 },
+
   // Resend
   resendRow: {
     flexDirection: 'row',
@@ -267,6 +302,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   btnPrimaryText: { color: '#FFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.4 },
+  btnDisabled: { opacity: 0.6 },
 
   // Call instead
   callRow: {

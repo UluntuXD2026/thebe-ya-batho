@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 
 const COLORS = {
   primary: '#E8573A',
@@ -227,12 +229,13 @@ const card = StyleSheet.create({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 interface Props {
-  onContinue?: () => void;
+  onContinue?: (granted: { location: boolean; notifications: boolean }) => void;
 }
 
 const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
+  const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -242,10 +245,21 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
   }, []);
 
   const handleAllow = async () => {
-    // On a real device:
-    // const locStatus = await request(PERMISSIONS.IOS.LOCATION_ALWAYS);
-    // const notifStatus = await requestNotifications(['alert', 'sound', 'badge']);
-    onContinue?.();
+    setRequesting(true);
+    try {
+      const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
+      const locationGranted = locationStatus === 'granted';
+      if (locationGranted) {
+        await Location.requestBackgroundPermissionsAsync();
+      }
+
+      const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
+      const notificationsGranted = notificationStatus === 'granted';
+
+      onContinue?.({ location: locationGranted, notifications: notificationsGranted });
+    } finally {
+      setRequesting(false);
+    }
   };
 
   return (
@@ -293,11 +307,14 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
 
           {/* ── Allow & Continue ── */}
           <TouchableOpacity
-            style={styles.btnPrimary}
+            style={[styles.btnPrimary, requesting && styles.btnDisabled]}
             onPress={handleAllow}
             activeOpacity={0.85}
+            disabled={requesting}
           >
-            <Text style={styles.btnPrimaryText}>Allow & Continue</Text>
+            <Text style={styles.btnPrimaryText}>
+              {requesting ? 'Requesting...' : 'Allow & Continue'}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -341,4 +358,5 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   btnPrimaryText: { color: '#FFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.4 },
+  btnDisabled: { opacity: 0.6 },
 });

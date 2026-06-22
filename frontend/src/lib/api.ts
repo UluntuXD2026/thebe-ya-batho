@@ -25,11 +25,14 @@ async function request<T>(
 export const registerNumber = (number: string) =>
   request<{ message: string }>('/auth/register', { method: 'POST', body: { number } });
 
+export const loginNumber = (number: string) =>
+  request<{ message: string }>('/auth/login', { method: 'POST', body: { number } });
+
 export const verifyCode = (number: string, code: string) =>
-  request<{ message: string; token: string; refreshToken: string }>('/auth/verify', {
-    method: 'POST',
-    body: { number, code },
-  });
+  request<{ message: string; token: string; refreshToken: string; firstName?: string }>(
+    '/auth/verify',
+    { method: 'POST', body: { number, code } }
+  );
 
 export const completeProfile = (token: string, firstName: string, lastName: string) =>
   request<{ message: string }>('/auth/complete-profile', {

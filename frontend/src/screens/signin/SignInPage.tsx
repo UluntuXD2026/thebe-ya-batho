@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { loginNumber } from '../../lib/api';
+
 const COLORS = {
   primary: '#E8573A',
   primaryDark: '#C94428',
@@ -68,10 +70,13 @@ const iconStyles = StyleSheet.create({
 // ── Main Component ────────────────────────────────────────────────────────────
 type SignInPageProps = {
   onBack?: () => void;
+  onOtpSent?: (phone: string) => void;
 };
 
-const SignInPage: React.FC<SignInPageProps> = ({ onBack }) => {
+const SignInPage: React.FC<SignInPageProps> = ({ onBack, onOtpSent }) => {
   const [phone, setPhone] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -91,9 +96,22 @@ const SignInPage: React.FC<SignInPageProps> = ({ onBack }) => {
     ]).start();
   }, []);
 
-  const handleSendOTP = () => {
-    // navigation.navigate('OTPVerification', { phone });
-    console.log('Send OTP to:', phone);
+  const handleSendOTP = async () => {
+    if (phone.trim().length < 9) {
+      setError('Enter a valid phone number');
+      return;
+    }
+    const fullPhone = `+27${phone.trim()}`;
+    setError('');
+    setSending(true);
+    try {
+      await loginNumber(fullPhone);
+      onOtpSent?.(fullPhone);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleBiometric = () => {
@@ -165,15 +183,17 @@ const SignInPage: React.FC<SignInPageProps> = ({ onBack }) => {
                   returnKeyType="done"
                 />
               </View>
+              {!!error && <Text style={styles.errorText}>{error}</Text>}
             </View>
 
             {/* ── Send OTP ── */}
             <TouchableOpacity
-              style={styles.btnPrimary}
+              style={[styles.btnPrimary, sending && styles.btnDisabled]}
               onPress={handleSendOTP}
               activeOpacity={0.85}
+              disabled={sending}
             >
-              <Text style={styles.btnPrimaryText}>Send OTP</Text>
+              <Text style={styles.btnPrimaryText}>{sending ? 'Sending...' : 'Send OTP'}</Text>
             </TouchableOpacity>
 
             {/* ── Divider ── */}
@@ -308,6 +328,11 @@ const styles = StyleSheet.create({
     padding: 0,
     letterSpacing: 2,
   },
+  errorText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    marginTop: 8,
+  },
 
   // ── Primary button ────────────────────────────────────
   btnPrimary: {
@@ -321,6 +346,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 5,
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
   btnPrimaryText: {
     color: '#FFF',

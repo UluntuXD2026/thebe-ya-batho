@@ -109,9 +109,12 @@ router.post("/verify", async (req, res) => {
 
     await user.save();
 
-    res
-      .status(200)
-      .json({ message: "user logged in successfully", token, refreshToken });
+    res.status(200).json({
+      message: "user logged in successfully",
+      token,
+      refreshToken,
+      firstName: user.firstName,
+    });
   } catch (err) {
     res.status(500).json({ message: "internal server error", err });
   }

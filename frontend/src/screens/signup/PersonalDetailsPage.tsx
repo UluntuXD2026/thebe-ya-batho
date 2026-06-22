@@ -64,7 +64,7 @@ const dots = StyleSheet.create({
 // ── Personal Details Page ─────────────────────────────────────────────────────
 interface Props {
   token?: string;
-  onContinue?: () => void;
+  onContinue?: (firstName: string) => void;
 }
 
 const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue }) => {
@@ -90,7 +90,7 @@ const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue }) => {
     setSaving(true);
     try {
       await completeProfile(token, firstName.trim(), lastName.trim());
-      onContinue?.();
+      onContinue?.(firstName.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save details');
     } finally {
