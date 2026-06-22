@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { EmergencyContact, getEmergencyContacts } from '../../lib/api';
 import HelpMeScreen from '../emergency/HelpMeScreen';
 import HomePage from '../homepage/HomePage';
 import InboxPage from './InboxPage';
@@ -50,70 +51,20 @@ interface Conversation {
   type: 'chat' | 'group';
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const CONVERSATIONS: Conversation[] = [
-  {
-    id: '1',
-    name: 'Keamogetswe',
-    preview: 'Be on the look out for a blue Vw polo...',
-    time: '14:23',
-    avatarBg: '#C9A87C',
-    unread: 1,
-    unreadColor: COLORS.unreadBlue,
-    bold: true,
+const AVATAR_COLORS = ['#C9A87C', '#B5845A', '#7D9B6A', '#4A6FA5', '#C4783A'];
+
+const contactName = (contact: EmergencyContact) =>
+  [contact.to.firstName, contact.to.lastName].filter(Boolean).join(' ') || contact.to.number;
+
+const toConversations = (contacts: EmergencyContact[]): Conversation[] =>
+  contacts.map((contact, i) => ({
+    id: contact._id,
+    name: contactName(contact),
+    preview: contact.to.number,
+    time: '',
+    avatarBg: AVATAR_COLORS[i % AVATAR_COLORS.length],
     type: 'chat',
-  },
-  {
-    id: '2',
-    name: 'Sam',
-    preview: 'Please leave your phone when you go...',
-    time: 'Yesterday',
-    avatarBg: '#B5845A',
-    type: 'chat',
-  },
-  {
-    id: '3',
-    name: 'Precious',
-    preview: 'There is a blue vw polo robbing people...',
-    time: 'Tuesday',
-    avatarBg: '#7D9B6A',
-    type: 'chat',
-  },
-  {
-    id: '4',
-    name: 'Sebokeng 10',
-    preview: 'Good job on yesterday\'s patrol we man...',
-    time: 'Tuesday',
-    avatarBg: '#4A6FA5',
-    unread: 5,
-    unreadColor: COLORS.unreadRed,
-    type: 'group',
-  },
-  {
-    id: '5',
-    name: 'Sam',
-    preview: 'Please leave your phone when you go...',
-    time: 'Yesterday',
-    avatarBg: '#B5845A',
-    type: 'chat',
-  },
-  {
-    id: '6',
-    name: 'Precious',
-    preview: 'There is a blue vw polo robbing people...',
-    time: 'Friday',
-    avatarBg: '#7D9B6A',
-    type: 'chat',
-  },
-  {
-    id: '7',
-    name: 'Sechaba Patrol',
-    preview: 'Patrol schedule group has been sent to ...',
-    time: 'Friday',
-    avatarBg: '#C4783A',
-    type: 'group',
-  },
-];
+  }));
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 const Avatar: React.FC<{ bg: string }> = ({ bg }) => (
@@ -322,20 +273,32 @@ const nav = StyleSheet.create({
 });
 
 // ── Community Page ────────────────────────────────────────────────────────────
-const CommunityPage: React.FC = () => {
+interface Props {
+  token?: string;
+}
+
+const CommunityPage: React.FC<Props> = ({ token }) => {
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
   const [showHome, setShowHome] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    getEmergencyContacts(token)
+      .then(contacts => setConversations(toConversations(contacts)))
+      .catch(() => setConversations([]));
+  }, [token]);
+
   const TABS: FilterTab[] = ['All', 'Unread', 'Chats', 'Groups'];
 
-  const filtered = CONVERSATIONS.filter(c => {
+  const filtered = conversations.filter(c => {
     if (activeTab === 'All') return true;
     if (activeTab === 'Unread') return !!c.unread;
     if (activeTab === 'Chats') return c.type === 'chat';
@@ -353,7 +316,7 @@ const CommunityPage: React.FC = () => {
   }
 
   if (showHome) {
-    return <HomePage />;
+    return <HomePage token={token} />;
   }
 
   if (showHelpMe) {
@@ -413,6 +376,9 @@ const CommunityPage: React.FC = () => {
           )}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No emergency contacts yet</Text>
+          }
         />
 
         {/* ── Bottom nav ── */}
@@ -448,6 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
     paddingBottom: 12,
+    alignItems: 'center',
   },
   tabPill: {
     paddingHorizontal: 18,
@@ -481,6 +448,13 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     lineHeight: 26,
     marginTop: -2,
+  },
+
+  emptyText: {
+    padding: 24,
+    fontSize: 13,
+    color: COLORS.mediumGray,
+    textAlign: 'center',
   },
 
   navWrapper: {

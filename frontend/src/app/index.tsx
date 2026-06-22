@@ -30,7 +30,7 @@ export default function HomeScreen() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [signinPhone, setSigninPhone] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
-  const [signupToken, setSignupToken] = useState('');
+  const [accessToken, setAccessToken] = useState('');
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [userFirstName, setUserFirstName] = useState('');
@@ -57,7 +57,8 @@ export default function HomeScreen() {
         phoneNumber={signinPhone}
         onBack={() => setScreen('signin')}
         onResend={loginNumber}
-        onVerified={(_token, firstName) => {
+        onVerified={(token, firstName) => {
+          setAccessToken(token);
           if (firstName) setUserFirstName(firstName);
           setScreen('signinSuccess');
         }}
@@ -87,7 +88,7 @@ export default function HomeScreen() {
         phoneNumber={signupPhone}
         onBack={() => setScreen('signup')}
         onVerified={token => {
-          setSignupToken(token);
+          setAccessToken(token);
           setScreen('signupDetails');
         }}
       />
@@ -97,7 +98,7 @@ export default function HomeScreen() {
   if (screen === 'signupDetails') {
     return (
       <PersonalDetailsPage
-        token={signupToken}
+        token={accessToken}
         onContinue={firstName => {
           setUserFirstName(firstName);
           setScreen('signupPermissions');
@@ -130,7 +131,7 @@ export default function HomeScreen() {
   }
 
   if (screen === 'home') {
-    return <HomePage firstName={userFirstName} />;
+    return <HomePage firstName={userFirstName} token={accessToken} />;
   }
 
   return (

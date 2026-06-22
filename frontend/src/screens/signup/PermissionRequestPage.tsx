@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from 'react-native';
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 
 const COLORS = {
   primary: '#E8573A',
@@ -253,8 +252,16 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
         await Location.requestBackgroundPermissionsAsync();
       }
 
-      const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
-      const notificationsGranted = notificationStatus === 'granted';
+      let notificationsGranted = false;
+      try {
+        // dynamic import: expo-notifications throws on Android in Expo Go just by
+        // being imported, so it can't be a static top-level import (SDK 53+)
+        const Notifications = await import('expo-notifications');
+        const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
+        notificationsGranted = notificationStatus === 'granted';
+      } catch {
+        // not available in Expo Go - continue without notification permission
+      }
 
       onContinue?.({ location: locationGranted, notifications: notificationsGranted });
     } finally {

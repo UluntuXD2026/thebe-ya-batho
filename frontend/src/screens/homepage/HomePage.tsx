@@ -13,8 +13,12 @@ import {
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { EmergencyContact, getEmergencyContacts } from '../../lib/api';
 import CommunityPage from '../community/CommunityPage';
 import HelpMeScreen from '../emergency/HelpMeScreen';
+
+const contactName = (contact: EmergencyContact) =>
+  [contact.to.firstName, contact.to.lastName].filter(Boolean).join(' ') || contact.to.number;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -295,12 +299,15 @@ type CommunityTab = 'New messages' | 'Chats' | 'Groups';
 
 interface Props {
   firstName?: string;
+  token?: string;
 }
 
-const HomePage: React.FC<Props> = ({ firstName }) => {
+const HomePage: React.FC<Props> = ({ firstName, token }) => {
   const [communityTab, setCommunityTab] = useState<CommunityTab>('New messages');
   const [showCommunity, setShowCommunity] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [hasActiveEmergency, setHasActiveEmergency] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
 
@@ -311,10 +318,18 @@ const HomePage: React.FC<Props> = ({ firstName }) => {
     ]).start();
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+    getEmergencyContacts(token)
+      .then(setContacts)
+      .catch(() => setContacts([]));
+  }, [token]);
+
   const communityTabs: CommunityTab[] = ['New messages', 'Chats', 'Groups'];
 
   const handleEmergency = (type: string) => {
     console.log('Emergency:', type);
+    setHasActiveEmergency(true);
   };
 
   const handleHelpMe = () => {
@@ -322,7 +337,7 @@ const HomePage: React.FC<Props> = ({ firstName }) => {
   };
 
   if (showCommunity) {
-    return <CommunityPage />;
+    return <CommunityPage token={token} />;
   }
 
   if (showHelpMe) {
@@ -366,8 +381,10 @@ const HomePage: React.FC<Props> = ({ firstName }) => {
           <View style={styles.trackingCard}>
             <View style={styles.trackingLeft}>
               <Text style={styles.trackingLabel}>TRACKING</Text>
-              <Text style={styles.trackingStatus} numberOfLines={1}>Help is on the way</Text>
-              <TrackingBars />
+              <Text style={styles.trackingStatus} numberOfLines={1}>
+                {hasActiveEmergency ? 'Help is on the way' : 'No emergencies'}
+              </Text>
+              {hasActiveEmergency && <TrackingBars />}
             </View>
             <Image source={require('../../../assets/images/bell.png')} style={styles.trackingIcon} />
           </View>
@@ -412,18 +429,18 @@ const HomePage: React.FC<Props> = ({ firstName }) => {
 
             {/* Messages */}
             <View style={styles.messageList}>
-              <MessageRow
-                name="Keamogetswe"
-                preview="Be on the look out for a blue Vw polo..."
-                time="14:23"
-                unread={1}
-              />
-              <MessageRow
-                name="Sebokeng 10"
-                preview="Good job on yesterday's patrol we man..."
-                time="Tuesday"
-                unread={5}
-              />
+              {contacts.length === 0 ? (
+                <Text style={styles.emptyText}>No emergency contacts yet</Text>
+              ) : (
+                contacts.slice(0, 2).map(contact => (
+                  <MessageRow
+                    key={contact._id}
+                    name={contactName(contact)}
+                    preview={contact.to.number}
+                    time=""
+                  />
+                ))
+              )}
             </View>
           </View>
 
@@ -585,6 +602,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 20,
     overflow: 'hidden',
+  },
+  emptyText: {
+    padding: 16,
+    fontSize: 13,
+    color: COLORS.mediumGray,
+    textAlign: 'center',
   },
 
   // Nav wrapper

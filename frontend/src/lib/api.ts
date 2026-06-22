@@ -40,3 +40,12 @@ export const completeProfile = (token: string, firstName: string, lastName: stri
     token,
     body: { firstName, lastName },
   });
+
+export interface EmergencyContact {
+  _id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  to: { _id: string; firstName?: string; lastName?: string; number: string };
+}
+
+export const getEmergencyContacts = (token: string) =>
+  request<EmergencyContact[]>('/contacts/emergency-contacts', { token });

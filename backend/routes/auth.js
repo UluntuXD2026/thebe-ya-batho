@@ -64,7 +64,8 @@ router.post("/register", async (req, res) => {
 
     await newUser.save();
 
-    //code is temporarily revealed in the response message just for testing
+    //code is temporarily revealed in the response message and server logs just for testing
+    console.log(`[OTP] register ${normalizedNumber}: ${code}`);
     res
       .status(201)
       .json({ message: `verification code ${code} sent to ${number}` });
@@ -147,6 +148,7 @@ router.post("/login", async (req, res) => {
 
     await user.save();
 
+    console.log(`[OTP] login ${normalized}: ${code}`);
     res
       .status(201)
       .json({ message: `verification code ${code} sent to ${number}` });
