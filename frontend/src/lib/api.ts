@@ -49,3 +49,25 @@ export interface EmergencyContact {
 
 export const getEmergencyContacts = (token: string) =>
   request<EmergencyContact[]>('/contacts/emergency-contacts', { token });
+
+export const sendContactRequest = (token: string, number: string) =>
+  request<{ message: string }>('/contacts/request', {
+    method: 'POST',
+    token,
+    body: { number },
+  });
+
+export interface ReceivedContactRequest {
+  _id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  from: { _id: string; firstName?: string; lastName?: string; number: string };
+}
+
+export const getReceivedContactRequests = (token: string) =>
+  request<ReceivedContactRequest[]>('/contacts/see-requests-received', { token });
+
+export const acceptContactRequest = (token: string, id: string) =>
+  request<{ message: string }>(`/contacts/request/${id}/accept`, { method: 'POST', token });
+
+export const rejectContactRequest = (token: string, id: string) =>
+  request<{ message: string }>(`/contacts/request/${id}/reject`, { method: 'POST', token });

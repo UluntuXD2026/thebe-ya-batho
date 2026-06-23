@@ -54,14 +54,12 @@ const row = StyleSheet.create({
 // ── Main Component ────────────────────────────────────────────────────────────
 interface Props {
   method?: 'OTP Verified' | 'Biometric' | 'Face ID';
-  sessionExpiry?: string;
   locationShared?: string;
   onFinish?: () => void;
 }
 
 const SignInSuccessPage: React.FC<Props> = ({
   method = 'OTP Verified',
-  sessionExpiry = '8 hours',
   locationShared = 'Active',
   onFinish,
 }) => {
@@ -124,7 +122,6 @@ const SignInSuccessPage: React.FC<Props> = ({
               <Text style={styles.cardHeaderText}>SESSION INFO</Text>
             </View>
             <InfoRow label="Method Used" value={method} />
-            <InfoRow label="Session expires" value={sessionExpiry} />
             <InfoRow label="Location shared" value={locationShared} isLast />
           </Animated.View>
 

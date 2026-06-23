@@ -15,6 +15,7 @@ import { SvgXml } from 'react-native-svg';
 
 import { EmergencyContact, getEmergencyContacts } from '../../lib/api';
 import CommunityPage from '../community/CommunityPage';
+import ManageContactsPage from '../community/ManageContactsPage';
 import HelpMeScreen from '../emergency/HelpMeScreen';
 
 const contactName = (contact: EmergencyContact) =>
@@ -306,6 +307,7 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
   const [communityTab, setCommunityTab] = useState<CommunityTab>('New messages');
   const [showCommunity, setShowCommunity] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
+  const [showManageContacts, setShowManageContacts] = useState(false);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [hasActiveEmergency, setHasActiveEmergency] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -318,12 +320,14 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
     ]).start();
   }, []);
 
-  useEffect(() => {
+  const refreshContacts = () => {
     if (!token) return;
     getEmergencyContacts(token)
       .then(setContacts)
       .catch(() => setContacts([]));
-  }, [token]);
+  };
+
+  useEffect(refreshContacts, [token]);
 
   const communityTabs: CommunityTab[] = ['New messages', 'Chats', 'Groups'];
 
@@ -342,6 +346,18 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
 
   if (showHelpMe) {
     return <HelpMeScreen onCancel={() => setShowHelpMe(false)} />;
+  }
+
+  if (showManageContacts) {
+    return (
+      <ManageContactsPage
+        token={token}
+        onBack={() => {
+          setShowManageContacts(false);
+          refreshContacts();
+        }}
+      />
+    );
   }
 
   return (
@@ -391,7 +407,9 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
 
           {/* ── Emergencies ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Emergencies</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Emergencies</Text>
+            </View>
             <View style={styles.emergencyRow}>
               <EmergencyBtn label="Ambulance" onPress={() => handleEmergency('Ambulance')} />
               <EmergencyBtn label="Police" onPress={() => handleEmergency('Police')} />
@@ -401,7 +419,17 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
 
           {/* ── Community ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Community</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Community</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.addContactBtn}
+              onPress={() => setShowManageContacts(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.addContactBtnText}>+ Add Contact</Text>
+            </TouchableOpacity>
 
             {/* Tabs */}
             <View style={styles.tabRow}>
@@ -562,8 +590,29 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.black,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 14,
+  },
+  addContactBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    marginBottom: 14,
+  },
+  addContactBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 
   // Emergency row
