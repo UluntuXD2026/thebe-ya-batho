@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
+import { useHardwareBack } from '@/hooks/useHardwareBack';
 import { loginNumber } from '@/lib/api';
 import HomePage from '@/screens/homepage/HomePage';
 import LandingPage from '@/screens/signin/LandingPage';
@@ -26,6 +27,20 @@ type Screen =
   | 'signupDone'
   | 'home';
 
+// Mirrors each screen's own `onBack` target below, so the Android hardware
+// back button reproduces exactly what pressing that screen's back button does.
+// Screens with no entry here (splash, landing, success/done screens, home)
+// have no "previous page" to return to, so hardware back falls through to
+// the OS default (exit app) for those.
+const BACK_TARGET: Partial<Record<Screen, Screen>> = {
+  signin: 'landing',
+  signinOtp: 'signin',
+  signup: 'landing',
+  signupOtp: 'signup',
+  signupDetails: 'signupOtp',
+  signupPermissions: 'signupDetails',
+};
+
 export default function HomeScreen() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [signinPhone, setSigninPhone] = useState('');
@@ -34,6 +49,15 @@ export default function HomeScreen() {
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [userFirstName, setUserFirstName] = useState('');
+
+  useHardwareBack(
+    useCallback(() => {
+      const target = BACK_TARGET[screen];
+      if (!target) return false;
+      setScreen(target);
+      return true;
+    }, [screen]),
+  );
 
   if (screen === 'splash') {
     return <SplashScreen onFinish={() => setScreen('landing')} />;
@@ -73,6 +97,7 @@ export default function HomeScreen() {
   if (screen === 'signup') {
     return (
       <SignUpPage
+        onBack={() => setScreen('landing')}
         onSignIn={() => setScreen('signin')}
         onCodeSent={phone => {
           setSignupPhone(phone);
@@ -99,6 +124,7 @@ export default function HomeScreen() {
     return (
       <PersonalDetailsPage
         token={accessToken}
+        onBack={() => setScreen('signupOtp')}
         onContinue={firstName => {
           setUserFirstName(firstName);
           setScreen('signupPermissions');
@@ -110,6 +136,7 @@ export default function HomeScreen() {
   if (screen === 'signupPermissions') {
     return (
       <PermissionRequestPage
+        onBack={() => setScreen('signupDetails')}
         onContinue={granted => {
           setLocationEnabled(granted.location);
           setNotificationsEnabled(granted.notifications);

@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   KeyboardAvoidingView,
@@ -14,8 +13,11 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { registerNumber, verifyCode } from '../../lib/api';
+import { useResponsive } from '../../constants/responsive';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -80,6 +82,18 @@ const OTPVerificationPage: React.FC<Props> = ({
   onBack,
   onResend = registerNumber,
 }) => {
+  const { moderateScale, isTablet } = useResponsive();
+
+  useHardwareBack(
+    useCallback(() => {
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    }, [onBack]),
+  );
+
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [seconds, setSeconds] = useState(107); // 1:47
   const [verifying, setVerifying] = useState(false);
@@ -175,11 +189,15 @@ const OTPVerificationPage: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
-            style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+            style={[
+              styles.inner,
+              isTablet && styles.innerTablet,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+            ]}
           >
             {/* ── Heading ── */}
             <View style={styles.headingBlock}>
-              <Text style={styles.title}>Enter code</Text>
+              <Text style={[styles.title, { fontSize: moderateScale(26) }]}>Enter code</Text>
               <Text style={styles.subtitle}>Sent to {phoneNumber}</Text>
             </View>
 
@@ -194,18 +212,29 @@ const OTPVerificationPage: React.FC<Props> = ({
             {/* ── Timer ── */}
             <View style={styles.timerBlock}>
               <Text style={styles.timerLabel}>6-digit code expires in</Text>
-              <Text style={[styles.timerValue, seconds < 30 && styles.timerWarning]}>
+              <Text
+                style={[
+                  styles.timerValue,
+                  { fontSize: moderateScale(36) },
+                  seconds < 30 && styles.timerWarning,
+                ]}
+              >
                 {formatTime(seconds)}
               </Text>
             </View>
 
             {/* ── OTP boxes ── */}
-            <View style={styles.otpRow}>
+            <View style={[styles.otpRow, isTablet && styles.otpRowTablet]}>
               {Array.from({ length: CODE_LENGTH }).map((_, i) => (
                 <TextInput
                   key={i}
                   ref={el => { inputRefs.current[i] = el; }}
-                  style={[styles.otpBox, code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty]}
+                  style={[
+                    styles.otpBox,
+                    { fontSize: moderateScale(22) },
+                    isTablet && styles.otpBoxTablet,
+                    code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty,
+                  ]}
                   value={code[i]}
                   onChangeText={val => handleChange(val, i)}
                   onKeyPress={e => handleKeyPress(e, i)}
@@ -268,6 +297,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingBottom: 40 },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 48 },
+  innerTablet: { paddingHorizontal: 64, alignSelf: 'center', width: '100%', maxWidth: 600 },
 
   headingBlock: { alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 26, fontWeight: '700', color: COLORS.black, marginBottom: 6, textAlign: 'center' },
@@ -287,13 +317,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 8,
   },
+  otpRowTablet: {
+    justifyContent: 'center',
+    gap: 16,
+  },
   otpBox: {
     flex: 1,
     aspectRatio: 1,
     borderRadius: 12,
-    fontSize: 22,
     fontWeight: '700',
     color: COLORS.black,
+  },
+  otpBoxTablet: {
+    flex: 0,
+    width: 56,
+    height: 56,
   },
   otpBoxEmpty: {
     backgroundColor: COLORS.inputBg,

@@ -1,27 +1,28 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   ScrollView,
   Animated,
   Image,
-  Dimensions,
+  Linking,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EmergencyContact, getEmergencyContacts } from '../../lib/api';
+import { EmergencyContact, getEmergencyContacts, getReceivedContactRequests } from '../../lib/api';
+import { Responsive, useResponsive } from '../../constants/responsive';
+import { MaxContentWidth } from '../../constants/theme';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 import CommunityPage from '../community/CommunityPage';
 import ManageContactsPage from '../community/ManageContactsPage';
 import HelpMeScreen from '../emergency/HelpMeScreen';
 
 const contactName = (contact: EmergencyContact) =>
   [contact.to.firstName, contact.to.lastName].filter(Boolean).join(' ') || contact.to.number;
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
   primary: '#E8573A',
@@ -94,11 +95,12 @@ interface MessageRowProps {
   preview: string;
   time: string;
   unread?: number;
+  onPress?: () => void;
 }
 const MessageRow: React.FC<MessageRowProps> = ({
-  name, preview, time, unread,
+  name, preview, time, unread, onPress,
 }) => (
-  <TouchableOpacity style={msg.row} activeOpacity={0.75}>
+  <TouchableOpacity style={msg.row} activeOpacity={0.75} onPress={onPress}>
     <View style={msg.avatar} />
     <View style={msg.body}>
       <View style={msg.topRow}>
@@ -180,30 +182,58 @@ const MessageCircleIcon: React.FC<{ color?: string }> = ({ color = '#29274D' }) 
 );
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
-const BottomNav: React.FC<{ onHelpMe: () => void; onChat: () => void }> = ({ onHelpMe, onChat }) => (
-  <View style={nav.wrap}>
-    {/* Home */}
-    <TouchableOpacity style={nav.tab} activeOpacity={0.7}>
-      <View style={nav.iconCircleActive}>
-        <HomeIcon color="white" />
-      </View>
-    </TouchableOpacity>
+const BottomNav: React.FC<{ onHelpMe: () => void; onChat: () => void; r: Responsive }> = ({
+  onHelpMe, onChat, r,
+}) => {
+  const iconCircleSize = r.moderateScale(48);
+  const haloSize = r.moderateScale(104);
+  const helpBtnSize = r.moderateScale(90);
 
-    {/* Chat */}
-    <TouchableOpacity style={nav.tab} activeOpacity={0.7} onPress={onChat}>
-      <View style={nav.iconCircleOutline}>
-        <MessageCircleIcon color={COLORS.navyDark} />
-      </View>
-    </TouchableOpacity>
-
-    {/* Help Me FAB */}
-    <View style={nav.helpBtnHalo} pointerEvents="box-none">
-      <TouchableOpacity style={nav.helpBtn} onPress={onHelpMe} activeOpacity={0.85}>
-        <Text style={nav.helpText}>Help Me</Text>
+  return (
+    <View style={nav.wrap}>
+      {/* Home */}
+      <TouchableOpacity style={nav.tab} activeOpacity={0.7}>
+        <View
+          style={[
+            nav.iconCircleActive,
+            { width: iconCircleSize, height: iconCircleSize, borderRadius: iconCircleSize / 2 },
+          ]}
+        >
+          <HomeIcon color="white" />
+        </View>
       </TouchableOpacity>
+
+      {/* Chat */}
+      <TouchableOpacity style={nav.tab} activeOpacity={0.7} onPress={onChat}>
+        <View
+          style={[
+            nav.iconCircleOutline,
+            { width: iconCircleSize, height: iconCircleSize, borderRadius: iconCircleSize / 2 },
+          ]}
+        >
+          <MessageCircleIcon color={COLORS.navyDark} />
+        </View>
+      </TouchableOpacity>
+
+      {/* Help Me FAB */}
+      <View
+        style={[
+          nav.helpBtnHalo,
+          { width: haloSize, height: haloSize, borderRadius: haloSize / 2, marginLeft: -haloSize / 2 },
+        ]}
+        pointerEvents="box-none"
+      >
+        <TouchableOpacity
+          style={[nav.helpBtn, { width: helpBtnSize, height: helpBtnSize, borderRadius: helpBtnSize / 2 }]}
+          onPress={onHelpMe}
+          activeOpacity={0.85}
+        >
+          <Text style={nav.helpText}>Help Me</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 const nav = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
@@ -296,7 +326,7 @@ const nav = StyleSheet.create({
 });
 
 // ── Homepage ──────────────────────────────────────────────────────────────────
-type CommunityTab = 'New messages' | 'Chats' | 'Groups';
+type CommunityTab = 'New messages' | 'Chats' | 'Groups' | 'Contacts';
 
 interface Props {
   firstName?: string;
@@ -304,11 +334,14 @@ interface Props {
 }
 
 const HomePage: React.FC<Props> = ({ firstName, token }) => {
+  const r = useResponsive();
   const [communityTab, setCommunityTab] = useState<CommunityTab>('New messages');
   const [showCommunity, setShowCommunity] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
   const [showManageContacts, setShowManageContacts] = useState(false);
+  const [manageContactsTab, setManageContactsTab] = useState<'add' | 'requests'>('add');
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [hasActiveEmergency, setHasActiveEmergency] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -329,7 +362,16 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
 
   useEffect(refreshContacts, [token]);
 
-  const communityTabs: CommunityTab[] = ['New messages', 'Chats', 'Groups'];
+  const refreshPendingRequests = () => {
+    if (!token) return;
+    getReceivedContactRequests(token)
+      .then(all => setPendingRequestCount(all.filter(r => r.status === 'pending').length))
+      .catch(() => setPendingRequestCount(0));
+  };
+
+  useEffect(refreshPendingRequests, [token]);
+
+  const communityTabs: CommunityTab[] = ['New messages', 'Chats', 'Groups', 'Contacts'];
 
   const handleEmergency = (type: string) => {
     console.log('Emergency:', type);
@@ -340,8 +382,30 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
     setShowHelpMe(true);
   };
 
+  // Hardware back inside Home's sub-views returns to the Home hub; at the
+  // hub itself there's no previous in-app page, so let the OS default happen.
+  useHardwareBack(
+    useCallback(() => {
+      if (showManageContacts) {
+        setShowManageContacts(false);
+        refreshContacts();
+        refreshPendingRequests();
+        return true;
+      }
+      if (showHelpMe) {
+        setShowHelpMe(false);
+        return true;
+      }
+      if (showCommunity) {
+        setShowCommunity(false);
+        return true;
+      }
+      return false;
+    }, [showManageContacts, showHelpMe, showCommunity]),
+  );
+
   if (showCommunity) {
-    return <CommunityPage token={token} />;
+    return <CommunityPage token={token} onBack={() => setShowCommunity(false)} />;
   }
 
   if (showHelpMe) {
@@ -352,9 +416,11 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
     return (
       <ManageContactsPage
         token={token}
+        initialTab={manageContactsTab}
         onBack={() => {
           setShowManageContacts(false);
           refreshContacts();
+          refreshPendingRequests();
         }}
       />
     );
@@ -369,15 +435,20 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
       >
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
           {/* ── Top bar ── */}
           <View style={styles.topBar}>
             <View style={styles.userRow}>
-              <View style={styles.avatarWrap} />
+              <View
+                style={[
+                  styles.avatarWrap,
+                  { width: r.moderateScale(36), height: r.moderateScale(36), borderRadius: r.moderateScale(18) },
+                ]}
+              />
               <View style={styles.userInfo}>
-                <Text style={styles.greeting}>Hi, {firstName || 'there'}</Text>
+                <Text style={[styles.greeting, { fontSize: r.moderateScale(15) }]}>Hi, {firstName || 'there'}</Text>
                 <View style={styles.onlineRow}>
                   <View style={styles.onlineDot} />
                   <Text style={styles.onlineText}>Online</Text>
@@ -386,7 +457,13 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
             </View>
 
             {/* Bell */}
-            <TouchableOpacity style={styles.bellWrap} activeOpacity={0.75}>
+            <TouchableOpacity
+              style={[
+                styles.bellWrap,
+                { width: r.moderateScale(44), height: r.moderateScale(44), borderRadius: r.moderateScale(22) },
+              ]}
+              activeOpacity={0.75}
+            >
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>3</Text>
               </View>
@@ -397,18 +474,21 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
           <View style={styles.trackingCard}>
             <View style={styles.trackingLeft}>
               <Text style={styles.trackingLabel}>TRACKING</Text>
-              <Text style={styles.trackingStatus} numberOfLines={1}>
+              <Text style={[styles.trackingStatus, { fontSize: r.moderateScale(16) }]} numberOfLines={1}>
                 {hasActiveEmergency ? 'Help is on the way' : 'No emergencies'}
               </Text>
               {hasActiveEmergency && <TrackingBars />}
             </View>
-            <Image source={require('../../../assets/images/bell.png')} style={styles.trackingIcon} />
+            <Image
+              source={require('../../../assets/images/bell.png')}
+              style={[styles.trackingIcon, { width: r.moderateScale(44), height: r.moderateScale(44) }]}
+            />
           </View>
 
           {/* ── Emergencies ── */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Emergencies</Text>
+              <Text style={[styles.sectionTitle, { fontSize: r.moderateScale(22) }]}>Emergencies</Text>
             </View>
             <View style={styles.emergencyRow}>
               <EmergencyBtn label="Ambulance" onPress={() => handleEmergency('Ambulance')} />
@@ -420,16 +500,37 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
           {/* ── Community ── */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Community</Text>
+              <Text style={[styles.sectionTitle, { fontSize: r.moderateScale(22) }]}>Community</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.addContactBtn}
-              onPress={() => setShowManageContacts(true)}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.addContactBtnText}>+ Add Contact</Text>
-            </TouchableOpacity>
+            <View style={styles.contactBtnRow}>
+              <TouchableOpacity
+                style={styles.addContactBtn}
+                onPress={() => {
+                  setManageContactsTab('add');
+                  setShowManageContacts(true);
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.addContactBtnText}>+ Add Contact</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.requestsBtn}
+                onPress={() => {
+                  setManageContactsTab('requests');
+                  setShowManageContacts(true);
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.requestsBtnText}>Requests</Text>
+                {pendingRequestCount > 0 && (
+                  <View style={styles.requestsBadge}>
+                    <Text style={styles.requestsBadgeText}>{pendingRequestCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
 
             {/* Tabs */}
             <View style={styles.tabRow}>
@@ -460,12 +561,17 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
               {contacts.length === 0 ? (
                 <Text style={styles.emptyText}>No emergency contacts yet</Text>
               ) : (
-                contacts.slice(0, 2).map(contact => (
+                (communityTab === 'Contacts' ? contacts : contacts.slice(0, 2)).map(contact => (
                   <MessageRow
                     key={contact._id}
                     name={contactName(contact)}
                     preview={contact.to.number}
                     time=""
+                    onPress={
+                      communityTab === 'Contacts'
+                        ? () => Linking.openURL(`tel:${contact.to.number}`)
+                        : undefined
+                    }
                   />
                 ))
               )}
@@ -478,7 +584,7 @@ const HomePage: React.FC<Props> = ({ firstName, token }) => {
 
         {/* ── Bottom Navigation ── */}
         <View style={styles.navWrapper}>
-          <BottomNav onHelpMe={handleHelpMe} onChat={() => setShowCommunity(true)} />
+          <BottomNav onHelpMe={handleHelpMe} onChat={() => setShowCommunity(true)} r={r} />
         </View>
       </Animated.View>
     </SafeAreaView>
@@ -598,6 +704,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 14,
   },
+  contactBtnRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 14,
+  },
   addContactBtn: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.cardBg,
@@ -606,13 +718,42 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginHorizontal: 20,
-    marginBottom: 14,
   },
   addContactBtnText: {
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  requestsBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderGray,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  requestsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.darkGray,
+  },
+  requestsBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestsBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
   },
 
   // Emergency row

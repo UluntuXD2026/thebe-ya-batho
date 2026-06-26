@@ -1,20 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   ScrollView,
   Animated,
   FlatList,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmergencyContact, getEmergencyContacts } from '../../lib/api';
+import { Responsive, useResponsive } from '../../constants/responsive';
+import { MaxContentWidth } from '../../constants/theme';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 import HelpMeScreen from '../emergency/HelpMeScreen';
-import HomePage from '../homepage/HomePage';
 import InboxPage from './InboxPage';
 
 const COLORS = {
@@ -159,27 +161,55 @@ const MessageCircleIcon: React.FC<{ color?: string }> = ({ color = '#29274D' }) 
 );
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
-const BottomNav: React.FC<{ onHome: () => void; onHelpMe: () => void }> = ({ onHome, onHelpMe }) => (
-  <View style={nav.wrap}>
-    <TouchableOpacity style={nav.tab} activeOpacity={0.7} onPress={onHome}>
-      <View style={nav.iconCircleSolid}>
-        <HomeIcon color={COLORS.navyDark} />
-      </View>
-    </TouchableOpacity>
+const BottomNav: React.FC<{ onHome: () => void; onHelpMe: () => void; r: Responsive }> = ({
+  onHome, onHelpMe, r,
+}) => {
+  const iconCircleSize = r.moderateScale(48);
+  const haloSize = r.moderateScale(104);
+  const helpBtnSize = r.moderateScale(90);
 
-    <TouchableOpacity style={nav.tab} activeOpacity={0.7}>
-      <View style={nav.iconCircleActive}>
-        <MessageCircleIcon color="white" />
-      </View>
-    </TouchableOpacity>
-
-    <View style={nav.helpBtnHalo} pointerEvents="box-none">
-      <TouchableOpacity style={nav.helpBtn} onPress={onHelpMe} activeOpacity={0.85}>
-        <Text style={nav.helpText}>Help Me</Text>
+  return (
+    <View style={nav.wrap}>
+      <TouchableOpacity style={nav.tab} activeOpacity={0.7} onPress={onHome}>
+        <View
+          style={[
+            nav.iconCircleSolid,
+            { width: iconCircleSize, height: iconCircleSize, borderRadius: iconCircleSize / 2 },
+          ]}
+        >
+          <HomeIcon color={COLORS.navyDark} />
+        </View>
       </TouchableOpacity>
+
+      <TouchableOpacity style={nav.tab} activeOpacity={0.7}>
+        <View
+          style={[
+            nav.iconCircleActive,
+            { width: iconCircleSize, height: iconCircleSize, borderRadius: iconCircleSize / 2 },
+          ]}
+        >
+          <MessageCircleIcon color="white" />
+        </View>
+      </TouchableOpacity>
+
+      <View
+        style={[
+          nav.helpBtnHalo,
+          { width: haloSize, height: haloSize, borderRadius: haloSize / 2, marginLeft: -haloSize / 2 },
+        ]}
+        pointerEvents="box-none"
+      >
+        <TouchableOpacity
+          style={[nav.helpBtn, { width: helpBtnSize, height: helpBtnSize, borderRadius: helpBtnSize / 2 }]}
+          onPress={onHelpMe}
+          activeOpacity={0.85}
+        >
+          <Text style={nav.helpText}>Help Me</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 const nav = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
@@ -275,15 +305,36 @@ const nav = StyleSheet.create({
 // ── Community Page ────────────────────────────────────────────────────────────
 interface Props {
   token?: string;
+  onBack?: () => void;
 }
 
-const CommunityPage: React.FC<Props> = ({ token }) => {
+const CommunityPage: React.FC<Props> = ({ token, onBack }) => {
+  const r = useResponsive();
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [activeChat, setActiveChat] = useState<Conversation | null>(null);
-  const [showHome, setShowHome] = useState(false);
   const [showHelpMe, setShowHelpMe] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Hardware back steps out of a sub-view first, then defers to onBack
+  // (returning to Home) and finally to the OS default if there's nowhere to go.
+  useHardwareBack(
+    useCallback(() => {
+      if (activeChat) {
+        setActiveChat(null);
+        return true;
+      }
+      if (showHelpMe) {
+        setShowHelpMe(false);
+        return true;
+      }
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    }, [activeChat, showHelpMe, onBack]),
+  );
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -315,10 +366,6 @@ const CommunityPage: React.FC<Props> = ({ token }) => {
     );
   }
 
-  if (showHome) {
-    return <HomePage token={token} />;
-  }
-
   if (showHelpMe) {
     return <HelpMeScreen onCancel={() => setShowHelpMe(false)} />;
   }
@@ -330,6 +377,11 @@ const CommunityPage: React.FC<Props> = ({ token }) => {
       <Animated.View style={[styles.flex, { opacity: fadeAnim }]}>
         {/* ── Header ── */}
         <View style={styles.header}>
+          {onBack && (
+            <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+              <Text style={styles.backArrow}>‹</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>Community</Text>
         </View>
 
@@ -383,7 +435,7 @@ const CommunityPage: React.FC<Props> = ({ token }) => {
 
         {/* ── Bottom nav ── */}
         <View style={styles.navWrapper}>
-          <BottomNav onHome={() => setShowHome(true)} onHelpMe={() => setShowHelpMe(true)} />
+          <BottomNav onHome={() => onBack?.()} onHelpMe={() => setShowHelpMe(true)} r={r} />
         </View>
       </Animated.View>
     </SafeAreaView>
@@ -397,9 +449,24 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
 
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backArrow: {
+    fontSize: 32,
+    color: COLORS.black,
+    lineHeight: 36,
+    marginTop: -4,
   },
   title: {
     fontSize: 30,

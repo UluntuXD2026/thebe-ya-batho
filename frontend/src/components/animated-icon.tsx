@@ -1,20 +1,23 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
+import { useResponsive } from '@/constants/responsive';
+
 const DURATION = 600;
 
 export function AnimatedSplashOverlay() {
+  const { height } = useResponsive();
+  const initialScaleFactor = height / 90;
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
 
   const splashKeyframe = new Keyframe({
     0: {
-      transform: [{ scale: INITIAL_SCALE_FACTOR }],
+      transform: [{ scale: initialScaleFactor }],
       opacity: 1,
     },
     20: {
@@ -44,16 +47,6 @@ export function AnimatedSplashOverlay() {
   );
 }
 
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
 const logoKeyframe = new Keyframe({
   0: {
     transform: [{ scale: 1.3 }],
@@ -81,6 +74,19 @@ const glowKeyframe = new Keyframe({
 });
 
 export function AnimatedIcon() {
+  const { height } = useResponsive();
+  const initialScaleFactor = height / 90;
+
+  const keyframe = new Keyframe({
+    0: {
+      transform: [{ scale: initialScaleFactor }],
+    },
+    100: {
+      transform: [{ scale: 1 }],
+      easing: Easing.elastic(0.7),
+    },
+  });
+
   return (
     <View style={styles.iconContainer}>
       <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>

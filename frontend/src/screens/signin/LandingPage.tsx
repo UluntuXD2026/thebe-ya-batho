@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
-  SafeAreaView,
   StatusBar,
   Animated,
-  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width, height } = Dimensions.get('window');
+import SimpleLogo from '../../components/SimpleLogo';
+import { useResponsive } from '../../constants/responsive';
 
 const bgImage = require('../../../assets/images/tebeImages/african-american.png');
 
@@ -25,21 +25,18 @@ const COLORS = {
   overlay: 'rgba(0,0,0,0.32)',
 };
 
-/**
- * Minimal SVG-style shield + check logo rendered with View primitives.
- * Swap this out for your actual SVG logo component (react-native-svg).
- */
-const Logo: React.FC = () => (
+const Logo: React.FC<{ moderateScale: (size: number, factor?: number) => number }> = ({
+  moderateScale,
+}) => (
   <View style={styles.logoRow}>
-    {/* Shield icon approximation */}
-    <View style={styles.logoIconWrap}>
-      <View style={styles.logoCircle} />
-      <View style={styles.logoCheckLeft} />
-      <View style={styles.logoCheckRight} />
-    </View>
+    <SimpleLogo
+      color={COLORS.white}
+      width={moderateScale(40)}
+      height={moderateScale(42)}
+    />
     <View style={styles.logoTextWrap}>
-      <Text style={styles.logoLine1}>Thebe</Text>
-      <Text style={styles.logoLine2}>Ya Batho</Text>
+      <Text style={[styles.logoLine1, { fontSize: moderateScale(14) }]}>Thebe</Text>
+      <Text style={[styles.logoLine2, { fontSize: moderateScale(14) }]}>Ya Batho</Text>
     </View>
   </View>
 );
@@ -50,6 +47,7 @@ type LandingPageProps = {
 };
 
 const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onCreateAccount }) => {
+  const { moderateScale } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const btnAnim = useRef(new Animated.Value(0)).current;
@@ -104,7 +102,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onCreateAccount }) 
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Logo />
+            <Logo moderateScale={moderateScale} />
           </Animated.View>
 
           {/* ── Spacer – fills the portrait photo area ── */}
@@ -118,7 +116,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onCreateAccount }) 
               onPress={handleCreateAccount}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnPrimaryText}>Create Account</Text>
+              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
+                Create Account
+              </Text>
             </TouchableOpacity>
 
             {/* Secondary: Sign In */}
@@ -127,7 +127,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onCreateAccount }) 
               onPress={handleSignIn}
               activeOpacity={0.75}
             >
-              <Text style={styles.btnSecondaryText}>Sign In</Text>
+              <Text style={[styles.btnSecondaryText, { fontSize: moderateScale(16) }]}>
+                Sign In
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>
@@ -172,36 +174,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  logoIconWrap: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    position: 'absolute',
-  },
-  logoCheckLeft: {
-    position: 'absolute',
-    width: 8,
-    height: 2,
-    backgroundColor: COLORS.white,
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }, { translateX: -3 }, { translateY: 2 }],
-  },
-  logoCheckRight: {
-    position: 'absolute',
-    width: 14,
-    height: 2,
-    backgroundColor: COLORS.white,
-    borderRadius: 1,
-    transform: [{ rotate: '-45deg' }, { translateX: 3 }, { translateY: -1 }],
   },
   logoTextWrap: {
     flexDirection: 'column',

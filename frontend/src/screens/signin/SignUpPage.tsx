@@ -5,15 +5,17 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { registerNumber } from '../../lib/api';
+import { useResponsive } from '../../constants/responsive';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -26,6 +28,7 @@ const COLORS = {
   pageBg: '#FFFFFF',
   stepActive: '#E8573A',
   stepInactive: '#F2C0B5',
+  pinkBack: '#FCE8E4',
 };
 
 const TOTAL_STEPS = 5;
@@ -87,12 +90,20 @@ const dots = StyleSheet.create({
 type SignUpPageProps = {
   onSignIn?: () => void;
   onCodeSent?: (phone: string) => void;
+  onBack?: () => void;
 };
 
-const SignUpPage: React.FC<SignUpPageProps> = ({ onSignIn, onCodeSent }) => {
+const SignUpPage: React.FC<SignUpPageProps> = ({ onSignIn, onCodeSent, onBack }) => {
+  const { moderateScale } = useResponsive();
   const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+
+  useHardwareBack(() => {
+    if (!onBack) return false;
+    onBack();
+    return true;
+  });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -134,6 +145,10 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignIn, onCodeSent }) => {
     onSignIn?.();
   };
 
+  const handleBack = () => {
+    onBack?.();
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.pageBg} />
@@ -152,9 +167,23 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignIn, onCodeSent }) => {
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
+            {/* ── Header row ── */}
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                style={[
+                  styles.backBtn,
+                  { width: moderateScale(40), height: moderateScale(40) },
+                ]}
+                onPress={handleBack}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.backArrow, { fontSize: moderateScale(26) }]}>‹</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* ── Heading ── */}
             <View style={styles.headingBlock}>
-              <Text style={styles.title}>Get started</Text>
+              <Text style={[styles.title, { fontSize: moderateScale(26) }]}>Get started</Text>
               <Text style={styles.subtitle}>
                 Enter your mobile number to begin
               </Text>
@@ -195,7 +224,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignIn, onCodeSent }) => {
               activeOpacity={0.85}
               disabled={sending}
             >
-              <Text style={styles.btnPrimaryText}>
+              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
                 {sending ? 'Sending...' : 'Send Verification Code'}
               </Text>
             </TouchableOpacity>
@@ -237,6 +266,27 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 48,
+  },
+
+  // ── Header ────────────────────────────────────────────
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.pinkBack,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backArrow: {
+    fontSize: 26,
+    color: COLORS.primary,
+    lineHeight: 30,
+    marginTop: -2,
   },
 
   // ── Heading ───────────────────────────────────────────

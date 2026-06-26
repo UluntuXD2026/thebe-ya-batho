@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   KeyboardAvoidingView,
@@ -14,8 +13,11 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { verifyCode } from '../../lib/api';
+import { useResponsive } from '../../constants/responsive';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -45,6 +47,18 @@ const SignInOTPPage: React.FC<Props> = ({
   onBack,
   onResend,
 }) => {
+  const { moderateScale } = useResponsive();
+
+  useHardwareBack(
+    useCallback(() => {
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    }, [onBack]),
+  );
+
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [seconds, setSeconds] = useState(107);
   const [verifying, setVerifying] = useState(false);
@@ -146,20 +160,33 @@ const SignInOTPPage: React.FC<Props> = ({
           >
             {/* ── Header row ── */}
             <View style={styles.headerRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
-                <Text style={styles.backArrow}>‹</Text>
+              <TouchableOpacity
+                style={[
+                  styles.backBtn,
+                  { width: moderateScale(40), height: moderateScale(40) },
+                ]}
+                onPress={handleBack}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.backArrow, { fontSize: moderateScale(26) }]}>‹</Text>
               </TouchableOpacity>
               <View style={styles.headerCenter}>
-                <Text style={styles.title}>Enter Code</Text>
+                <Text style={[styles.title, { fontSize: moderateScale(22) }]}>Enter Code</Text>
                 <Text style={styles.subtitle}>Code sent to {phoneNumber}</Text>
               </View>
-              <View style={styles.backBtnSpacer} />
+              <View style={[styles.backBtnSpacer, { width: moderateScale(40) }]} />
             </View>
 
             {/* ── Timer ── */}
             <View style={styles.timerBlock}>
               <Text style={styles.timerLabel}>6 Digit code expires in</Text>
-              <Text style={[styles.timerValue, seconds < 30 && styles.timerWarning]}>
+              <Text
+                style={[
+                  styles.timerValue,
+                  { fontSize: moderateScale(40) },
+                  seconds < 30 && styles.timerWarning,
+                ]}
+              >
                 {formatTime(seconds)}
               </Text>
             </View>
@@ -170,7 +197,11 @@ const SignInOTPPage: React.FC<Props> = ({
                 <TextInput
                   key={i}
                   ref={el => { inputRefs.current[i] = el; }}
-                  style={[styles.otpBox, code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty]}
+                  style={[
+                    styles.otpBox,
+                    { fontSize: moderateScale(22) },
+                    code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty,
+                  ]}
                   value={code[i]}
                   onChangeText={val => handleChange(val, i)}
                   onKeyPress={e => handleKeyPress(e, i)}
@@ -200,7 +231,7 @@ const SignInOTPPage: React.FC<Props> = ({
               activeOpacity={0.85}
               disabled={verifying}
             >
-              <Text style={styles.btnPrimaryText}>
+              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
                 {verifying ? 'Verifying...' : 'Verify & Sign In'}
               </Text>
             </TouchableOpacity>

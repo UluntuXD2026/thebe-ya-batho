@@ -1,17 +1,20 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   Platform,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import SOSScreen from './SOSScreen';
+
+import { useResponsive } from '@/constants/responsive';
+import { useHardwareBack } from '@/hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -40,6 +43,7 @@ interface Props {
 }
 
 const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
+  const { isTablet } = useResponsive();
   const [showSOS, setShowSOS] = useState(false);
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -60,6 +64,20 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
     onCancel?.();
   };
 
+  useHardwareBack(
+    useCallback(() => {
+      if (showSOS) {
+        setShowSOS(false);
+        return true;
+      }
+      if (onCancel) {
+        onCancel();
+        return true;
+      }
+      return false;
+    }, [showSOS, onCancel]),
+  );
+
   if (showSOS) {
     return <SOSScreen onCancel={() => setShowSOS(false)} />;
   }
@@ -71,6 +89,7 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
       <Animated.View
         style={[
           styles.inner,
+          isTablet && styles.innerTablet,
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
@@ -119,6 +138,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 48,
     paddingBottom: Platform.OS === 'ios' ? 24 : 32,
+  },
+  // On tablets/web, cap the content width and center it so options don't
+  // stretch edge-to-edge on very wide screens.
+  innerTablet: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
 
   // Title

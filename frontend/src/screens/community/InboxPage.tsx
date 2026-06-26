@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   FlatList,
   KeyboardAvoidingView,
@@ -14,6 +13,11 @@ import {
   Animated,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useResponsive } from '../../constants/responsive';
+import { MaxContentWidth } from '../../constants/theme';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -68,30 +72,28 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-const Avatar: React.FC<{ visible: boolean }> = ({ visible }) => (
-  <View style={av.wrap}>
-    <View style={visible ? av.circle : av.placeholder} />
+const Avatar: React.FC<{ visible: boolean; size: number }> = ({ visible, size }) => (
+  <View style={[av.wrap, { width: size }]}>
+    <View
+      style={visible ? [av.circle, { width: size, height: size, borderRadius: size / 2 }] : { width: size, height: size }}
+    />
   </View>
 );
 const av = StyleSheet.create({
-  wrap: { width: 36, marginRight: 8, justifyContent: 'flex-end' },
-  circle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#C9A87C',
-  },
-  placeholder: { width: 36, height: 36 },
+  wrap: { marginRight: 8, justifyContent: 'flex-end' },
+  circle: { backgroundColor: '#C9A87C' },
 });
 
 // ── Message bubble ────────────────────────────────────────────────────────────
-const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: Message; avatarSize: number; imageMaxWidth: number }> = ({
+  message, avatarSize, imageMaxWidth,
+}) => {
   const isMe = message.sender === 'me';
 
   return (
     <View style={[bbl.row, isMe ? bbl.rowMe : bbl.rowThem]}>
       {/* Avatar on left for received */}
-      {!isMe && <Avatar visible={!!message.showAvatar} />}
+      {!isMe && <Avatar visible={!!message.showAvatar} size={avatarSize} />}
 
       <View style={[bbl.maxWidth, isMe && bbl.maxWidthMe]}>
         {/* Timestamp above bubble */}
@@ -109,7 +111,7 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
           <View style={bbl.imageWrap}>
             <Image
               source={{ uri: message.imageUri }}
-              style={bbl.image}
+              style={[bbl.image, { width: imageMaxWidth, height: imageMaxWidth * 0.75 }]}
               resizeMode="cover"
             />
           </View>
@@ -164,8 +166,6 @@ const bbl = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   image: {
-    width: 200,
-    height: 150,
     borderRadius: 14,
   },
 });
@@ -302,6 +302,20 @@ const InboxPage: React.FC<Props> = ({
   contactName = 'Keamogetswe',
   onBack,
 }) => {
+  const r = useResponsive();
+  const avatarSize = r.moderateScale(36);
+  const imageMaxWidth = Math.min(r.width * 0.55, 220);
+
+  useHardwareBack(
+    useCallback(() => {
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    }, [onBack]),
+  );
+
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -343,7 +357,12 @@ const InboxPage: React.FC<Props> = ({
           </TouchableOpacity>
 
           <View style={styles.contactInfo}>
-            <View style={styles.contactAvatar} />
+            <View
+              style={[
+                styles.contactAvatar,
+                { width: r.moderateScale(40), height: r.moderateScale(40), borderRadius: r.moderateScale(20) },
+              ]}
+            />
             <Text style={styles.contactName}>{contactName}</Text>
           </View>
         </View>
@@ -358,8 +377,13 @@ const InboxPage: React.FC<Props> = ({
             ref={listRef}
             data={messages}
             keyExtractor={item => item.id}
-            renderItem={({ item }) => <MessageBubble message={item} />}
-            contentContainerStyle={styles.messageList}
+            renderItem={({ item }) => (
+              <MessageBubble message={item} avatarSize={avatarSize} imageMaxWidth={imageMaxWidth} />
+            )}
+            contentContainerStyle={[
+              styles.messageList,
+              { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+            ]}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           />

@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   ReceivedContactRequest,
@@ -20,6 +20,9 @@ import {
   rejectContactRequest,
   sendContactRequest,
 } from '../../lib/api';
+import { useResponsive } from '../../constants/responsive';
+import { MaxContentWidth } from '../../constants/theme';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -44,10 +47,24 @@ type Tab = 'add' | 'requests';
 interface Props {
   token?: string;
   onBack?: () => void;
+  initialTab?: Tab;
 }
 
-const ManageContactsPage: React.FC<Props> = ({ token, onBack }) => {
-  const [tab, setTab] = useState<Tab>('add');
+const ManageContactsPage: React.FC<Props> = ({ token, onBack, initialTab = 'add' }) => {
+  const r = useResponsive();
+  const tabletContentStyle = { width: '100%' as const, maxWidth: MaxContentWidth, alignSelf: 'center' as const };
+
+  useHardwareBack(
+    useCallback(() => {
+      if (onBack) {
+        onBack();
+        return true;
+      }
+      return false;
+    }, [onBack]),
+  );
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -149,7 +166,7 @@ const ManageContactsPage: React.FC<Props> = ({ token, onBack }) => {
 
         {tab === 'add' ? (
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[styles.scroll, tabletContentStyle]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -189,7 +206,7 @@ const ManageContactsPage: React.FC<Props> = ({ token, onBack }) => {
           <FlatList
             data={requests}
             keyExtractor={item => item._id}
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[styles.scroll, tabletContentStyle]}
             refreshing={loadingRequests}
             onRefresh={refreshRequests}
             ListEmptyComponent={<Text style={styles.helperText}>No pending requests</Text>}

@@ -4,13 +4,15 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   Platform,
   ScrollView,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useResponsive } from '../../constants/responsive';
+import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -24,6 +26,7 @@ const COLORS = {
   stepInactive: '#F2C0B5',
   badgeBorder: '#111111',
   infoBorder: '#111111',
+  pinkBack: '#FCE8E4',
 };
 
 const TOTAL_STEPS = 5;
@@ -62,99 +65,142 @@ const dots = StyleSheet.create({
   dotInactive: { width: 10, backgroundColor: COLORS.stepInactive },
 });
 
-// ── Location Icon (pin) ───────────────────────────────────────────────────────
-const LocationIcon: React.FC = () => (
-  <View style={icon.wrap}>
-    <View style={icon.pinBody} />
-    <View style={icon.pinTip} />
-    <View style={icon.pinHole} />
-  </View>
-);
+// ── Location Icon (pin) ─────────────────────────────────────────────────────
+// All measurements below are internal to this self-contained glyph (not page
+// layout) — they describe a pin shape relative to its own box, so the whole
+// icon is scaled as one unit via `unitScale` rather than using fixed offsets
+// that would misalign relative to the surrounding card on other screen sizes.
+const LocationIcon: React.FC<{ unitScale: (size: number) => number }> = ({ unitScale }) => {
+  const box = unitScale(44);
+  return (
+    <View style={[icon.wrap, { width: box, height: box }]}>
+      <View
+        style={[
+          icon.pinBody,
+          {
+            width: unitScale(26),
+            height: unitScale(26),
+            borderRadius: unitScale(13),
+            borderWidth: unitScale(2.5),
+            top: unitScale(2),
+          },
+        ]}
+      />
+      <View
+        style={[
+          icon.pinTip,
+          {
+            width: unitScale(2.5),
+            height: unitScale(10),
+            bottom: unitScale(2),
+            borderRadius: unitScale(2),
+          },
+        ]}
+      />
+      <View
+        style={[
+          icon.pinHole,
+          {
+            width: unitScale(8),
+            height: unitScale(8),
+            borderRadius: unitScale(4),
+            top: unitScale(13),
+          },
+        ]}
+      />
+    </View>
+  );
+};
 
 const icon = StyleSheet.create({
   wrap: {
-    width: 44,
-    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pinBody: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2.5,
     borderColor: COLORS.black,
     backgroundColor: 'transparent',
     position: 'absolute',
-    top: 2,
   },
   pinTip: {
-    width: 2.5,
-    height: 10,
     backgroundColor: COLORS.black,
     position: 'absolute',
-    bottom: 2,
-    borderRadius: 2,
   },
   pinHole: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
     backgroundColor: COLORS.black,
     position: 'absolute',
-    top: 13,
   },
 });
 
-// ── Bell Icon ─────────────────────────────────────────────────────────────────
-const BellIcon: React.FC = () => (
-  <View style={bell.wrap}>
-    <View style={bell.body} />
-    <View style={bell.top} />
-    <View style={bell.clapper} />
-  </View>
-);
+// ── Bell Icon ───────────────────────────────────────────────────────────────
+// Same approach as LocationIcon: a self-contained glyph scaled as one unit.
+const BellIcon: React.FC<{ unitScale: (size: number) => number }> = ({ unitScale }) => {
+  const box = unitScale(44);
+  return (
+    <View style={[bell.wrap, { width: box, height: box }]}>
+      <View
+        style={[
+          bell.body,
+          {
+            width: unitScale(26),
+            height: unitScale(22),
+            borderTopLeftRadius: unitScale(13),
+            borderTopRightRadius: unitScale(13),
+            borderWidth: unitScale(2.5),
+            top: unitScale(6),
+          },
+        ]}
+      />
+      <View
+        style={[
+          bell.top,
+          {
+            width: unitScale(6),
+            height: unitScale(6),
+            borderRadius: unitScale(3),
+            borderWidth: unitScale(2.5),
+            top: unitScale(3),
+          },
+        ]}
+      />
+      <View
+        style={[
+          bell.clapper,
+          {
+            width: unitScale(8),
+            height: unitScale(4),
+            borderBottomLeftRadius: unitScale(4),
+            borderBottomRightRadius: unitScale(4),
+            borderWidth: unitScale(2.5),
+            bottom: unitScale(4),
+          },
+        ]}
+      />
+    </View>
+  );
+};
 
 const bell = StyleSheet.create({
   wrap: {
-    width: 44,
-    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   body: {
-    width: 26,
-    height: 22,
-    borderTopLeftRadius: 13,
-    borderTopRightRadius: 13,
-    borderWidth: 2.5,
     borderBottomWidth: 0,
     borderColor: COLORS.black,
     backgroundColor: 'transparent',
     position: 'absolute',
-    top: 6,
   },
   top: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    borderWidth: 2.5,
     borderColor: COLORS.black,
     backgroundColor: 'transparent',
     position: 'absolute',
-    top: 3,
   },
   clapper: {
-    width: 8,
-    height: 4,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    borderWidth: 2.5,
     borderTopWidth: 0,
     borderColor: COLORS.black,
     backgroundColor: 'transparent',
     position: 'absolute',
-    bottom: 4,
   },
 });
 
@@ -165,9 +211,14 @@ interface PermissionCardProps {
   description: string;
 }
 
-const PermissionCard: React.FC<PermissionCardProps> = ({ icon: IconEl, title, description }) => (
+const PermissionCard: React.FC<PermissionCardProps & { iconBoxSize: number }> = ({
+  icon: IconEl,
+  title,
+  description,
+  iconBoxSize,
+}) => (
   <View style={card.wrap}>
-    <View style={card.iconCol}>{IconEl}</View>
+    <View style={[card.iconCol, { width: iconBoxSize, height: iconBoxSize }]}>{IconEl}</View>
     <View style={card.textCol}>
       <View style={card.titleRow}>
         <Text style={card.title}>{title}</Text>
@@ -191,8 +242,6 @@ const card = StyleSheet.create({
     gap: 14,
   },
   iconCol: {
-    width: 44,
-    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
@@ -229,12 +278,21 @@ const card = StyleSheet.create({
 // ── Main Component ────────────────────────────────────────────────────────────
 interface Props {
   onContinue?: (granted: { location: boolean; notifications: boolean }) => void;
+  onBack?: () => void;
 }
 
-const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
+const PermissionRequestPage: React.FC<Props> = ({ onContinue, onBack }) => {
+  const { moderateScale, isTablet } = useResponsive();
+  const iconBoxSize = moderateScale(44);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
   const [requesting, setRequesting] = useState(false);
+
+  useHardwareBack(() => {
+    if (!onBack) return false;
+    onBack();
+    return true;
+  });
 
   useEffect(() => {
     Animated.parallel([
@@ -269,6 +327,10 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
     }
   };
 
+  const handleBack = () => {
+    onBack?.();
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.pageBg} />
@@ -277,11 +339,29 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
-          style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+          style={[
+            styles.inner,
+            isTablet && styles.innerTablet,
+            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+          ]}
         >
+          {/* ── Header row ── */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={[
+                styles.backBtn,
+                { width: moderateScale(40), height: moderateScale(40) },
+              ]}
+              onPress={handleBack}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.backArrow, { fontSize: moderateScale(26) }]}>‹</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* ── Heading ── */}
           <View style={styles.headingBlock}>
-            <Text style={styles.title}>Permission Request</Text>
+            <Text style={[styles.title, { fontSize: moderateScale(26) }]}>Permission Request</Text>
             <Text style={styles.subtitle}>The app can't protect you without these</Text>
           </View>
 
@@ -295,14 +375,16 @@ const PermissionRequestPage: React.FC<Props> = ({ onContinue }) => {
 
           {/* ── Permission cards ── */}
           <PermissionCard
-            icon={<LocationIcon />}
+            icon={<LocationIcon unitScale={moderateScale} />}
             title="Location- Always On"
             description="Needed to dispatch responders to you instantly"
+            iconBoxSize={iconBoxSize}
           />
           <PermissionCard
-            icon={<BellIcon />}
+            icon={<BellIcon unitScale={moderateScale} />}
             title="Notifications"
             description="Get alerts when help is on the way"
+            iconBoxSize={iconBoxSize}
           />
 
           {/* ── Info note ── */}
@@ -335,6 +417,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.pageBg },
   scroll: { flexGrow: 1, paddingBottom: 40 },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 48 },
+  innerTablet: { paddingHorizontal: 64, alignSelf: 'center', width: '100%', maxWidth: 600 },
+
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.pinkBack,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backArrow: { fontSize: 26, color: COLORS.primary, lineHeight: 30, marginTop: -2 },
 
   headingBlock: { alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 26, fontWeight: '700', color: COLORS.black, marginBottom: 8, textAlign: 'center' },

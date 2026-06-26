@@ -4,16 +4,19 @@ import {
   StyleSheet,
   Animated,
   StatusBar,
-  Dimensions,
   Easing,
 } from 'react-native';
 import Svg, { G, Path, Line } from 'react-native-svg';
 
-const { width: W, height: H } = Dimensions.get('window');
+import { useResponsive } from '../../constants/responsive';
 
 // ── Inline SVG logo using react-native-svg ────────────────────────────────────
-const ThebeYaBathoLogo: React.FC<{ color?: string }> = ({ color = '#111111' }) => (
-  <Svg width={320} height={80} viewBox="0 0 480 120" fill="none">
+const ThebeYaBathoLogo: React.FC<{ color?: string; width?: number; height?: number }> = ({
+  color = '#111111',
+  width = 320,
+  height = 80,
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 480 120" fill="none">
 
     {/* Left arm */}
     <G transform="translate(18, 8)">
@@ -56,9 +59,14 @@ interface Props {
 }
 
 const SplashScreen: React.FC<Props> = ({ onFinish }) => {
+  const { width, height, scale } = useResponsive();
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.82)).current;
   const exitAnim  = useRef(new Animated.Value(1)).current;
+
+  // Logo is 480x120 native aspect, baseline render size 320x80 at 375pt width.
+  const logoWidth = Math.min(scale(320), 420);
+  const logoHeight = logoWidth * (80 / 320);
 
   useEffect(() => {
     Animated.sequence([
@@ -93,7 +101,7 @@ const SplashScreen: React.FC<Props> = ({ onFinish }) => {
   }, []);
 
   return (
-    <Animated.View style={[styles.container, { opacity: exitAnim }]}>
+    <Animated.View style={[styles.container, { opacity: exitAnim, width, height }]}>
       <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
       <Animated.View
         style={[
@@ -104,7 +112,7 @@ const SplashScreen: React.FC<Props> = ({ onFinish }) => {
           },
         ]}
       >
-        <ThebeYaBathoLogo color="#111111" />
+        <ThebeYaBathoLogo color="#111111" width={logoWidth} height={logoHeight} />
       </Animated.View>
     </Animated.View>
   );
@@ -118,8 +126,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    width: W,
-    height: H,
   },
   logoWrap: {
     justifyContent: 'center',

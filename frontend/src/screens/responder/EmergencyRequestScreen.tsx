@@ -1,15 +1,18 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   ScrollView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useResponsive } from '@/constants/responsive';
+import { useHardwareBack } from '@/hooks/useHardwareBack';
 
 const COLORS = {
   pageBg: '#1E2347',
@@ -40,12 +43,13 @@ const formatDate = (date: Date): string =>
 
 // ── Map placeholder ───────────────────────────────────────────────────────────
 // Swap this with <MapView> from react-native-maps when ready
-const MapPlaceholder: React.FC<{ latitude: string; longitude: string }> = ({
+const MapPlaceholder: React.FC<{ latitude: string; longitude: string; height: number }> = ({
   latitude,
   longitude,
+  height,
 }) => (
-  <View style={map.wrap}>
-    {/* Grid lines to simulate a map */}
+  <View style={[map.wrap, { height }]}>
+    {/* Grid lines to simulate a map — positioned in % of the map container, not the screen */}
     {[0, 1, 2, 3, 4].map(i => (
       <View key={`h${i}`} style={[map.gridLine, map.horizontal, { top: `${i * 25}%` }]} />
     ))}
@@ -81,7 +85,6 @@ const MapPlaceholder: React.FC<{ latitude: string; longitude: string }> = ({
 const map = StyleSheet.create({
   wrap: {
     width: '100%',
-    height: 160,
     backgroundColor: COLORS.mapBg,
     borderRadius: 14,
     overflow: 'hidden',
@@ -193,6 +196,9 @@ const EmergencyRequestScreen: React.FC<Props> = ({
   onAttend,
   onCancel,
 }) => {
+  const { width, verticalScale, isTablet } = useResponsive();
+  const mapHeight = Math.min(verticalScale(160), width * 0.45);
+
   const [requestTime]  = useState<Date>(new Date());
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -243,6 +249,16 @@ const EmergencyRequestScreen: React.FC<Props> = ({
     // navigation.navigate('ActiveEmergency', { requesterName, latitude, longitude });
   };
 
+  useHardwareBack(
+    useCallback(() => {
+      if (onCancel) {
+        onCancel();
+        return true;
+      }
+      return false;
+    }, [onCancel]),
+  );
+
   const handleCancel = () => {
     console.log('❌ Emergency request dismissed at:', formatTime(new Date()));
     onCancel?.();
@@ -261,6 +277,7 @@ const EmergencyRequestScreen: React.FC<Props> = ({
         <Animated.View
           style={[
             styles.card,
+            isTablet && styles.cardTablet,
             {
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }, { translateX: shakeAnim }],
@@ -274,7 +291,7 @@ const EmergencyRequestScreen: React.FC<Props> = ({
           <View style={styles.divider} />
 
           {/* ── Map ── */}
-          <MapPlaceholder latitude={latitude} longitude={longitude} />
+          <MapPlaceholder latitude={latitude} longitude={longitude} height={mapHeight} />
 
           {/* ── Meta info ── */}
           <View style={styles.metaBlock}>
@@ -315,7 +332,13 @@ const EmergencyRequestScreen: React.FC<Props> = ({
         </Animated.View>
 
         {/* ── Cancel button ── */}
-        <Animated.View style={[styles.cancelWrap, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[
+            styles.cancelWrap,
+            isTablet && styles.cancelWrapTablet,
+            { opacity: fadeAnim },
+          ]}
+        >
           <TouchableOpacity
             style={styles.cancelBtn}
             onPress={handleCancel}
@@ -348,6 +371,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: COLORS.cardBg,
+    alignSelf: 'center',
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 28,
@@ -357,6 +381,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 12,
+  },
+  // On tablets/web, cap card width and center it instead of stretching edge-to-edge.
+  cardTablet: {
+    maxWidth: 480,
   },
   emergencyTitle: {
     fontSize: 22,
@@ -402,6 +430,7 @@ const styles = StyleSheet.create({
 
   // Cancel
   cancelWrap: { width: '100%' },
+  cancelWrapTablet: { maxWidth: 480, alignSelf: 'center' },
   cancelBtn: {
     width: '100%',
     backgroundColor: COLORS.cancelBg,

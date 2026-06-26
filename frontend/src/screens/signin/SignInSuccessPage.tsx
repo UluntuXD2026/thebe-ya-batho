@@ -4,11 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useResponsive } from '../../constants/responsive';
 
 const COLORS = {
   primary: '#E8573A',
@@ -63,6 +65,7 @@ const SignInSuccessPage: React.FC<Props> = ({
   locationShared = 'Active',
   onFinish,
 }) => {
+  const { moderateScale } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -110,7 +113,9 @@ const SignInSuccessPage: React.FC<Props> = ({
               { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
             ]}
           >
-            <Text style={styles.title}>Signed In successfully</Text>
+            <Text style={[styles.title, { fontSize: moderateScale(28) }]}>
+              Signed In successfully
+            </Text>
             <Text style={styles.subtitle}>
               Redirecting to emergency dashboard
             </Text>
@@ -137,7 +142,9 @@ const SignInSuccessPage: React.FC<Props> = ({
               onPress={handleGoToEmergency}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnPrimaryText}>GO to Emergency Screen</Text>
+              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
+                GO to Emergency Screen
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
