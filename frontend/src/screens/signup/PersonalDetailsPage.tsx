@@ -5,17 +5,15 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { completeProfile } from '../../lib/api';
-import { useResponsive } from '../../constants/responsive';
-import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -29,7 +27,6 @@ const COLORS = {
   pageBg: '#FFFFFF',
   stepActive: '#E8573A',
   stepInactive: '#F2C0B5',
-  pinkBack: '#FCE8E4',
 };
 
 const TOTAL_STEPS = 5;
@@ -67,22 +64,14 @@ const dots = StyleSheet.create({
 // ── Personal Details Page ─────────────────────────────────────────────────────
 interface Props {
   token?: string;
-  onContinue?: (firstName: string) => void;
-  onBack?: () => void;
+  onContinue?: () => void;
 }
 
-const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue, onBack }) => {
-  const { moderateScale, isTablet } = useResponsive();
+const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  useHardwareBack(() => {
-    if (!onBack) return false;
-    onBack();
-    return true;
-  });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -101,7 +90,7 @@ const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue, onBack }) => 
     setSaving(true);
     try {
       await completeProfile(token, firstName.trim(), lastName.trim());
-      onContinue?.(firstName.trim());
+      onContinue?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save details');
     } finally {
@@ -110,10 +99,6 @@ const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue, onBack }) => 
   };
 
   const isValid = firstName.trim().length > 0 && lastName.trim().length > 0;
-
-  const handleBack = () => {
-    onBack?.();
-  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -128,29 +113,11 @@ const PersonalDetailsPage: React.FC<Props> = ({ token, onContinue, onBack }) => 
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
-            style={[
-              styles.inner,
-              isTablet && styles.innerTablet,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
+            style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
           >
-            {/* ── Header row ── */}
-            <View style={styles.headerRow}>
-              <TouchableOpacity
-                style={[
-                  styles.backBtn,
-                  { width: moderateScale(40), height: moderateScale(40) },
-                ]}
-                onPress={handleBack}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.backArrow, { fontSize: moderateScale(26) }]}>‹</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* ── Heading ── */}
             <View style={styles.headingBlock}>
-              <Text style={[styles.title, { fontSize: moderateScale(26) }]}>Tell us your name</Text>
+              <Text style={styles.title}>Tell us your name</Text>
             </View>
 
             {/* ── Step progress ── */}
@@ -221,18 +188,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingBottom: 40 },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 48 },
-  innerTablet: { paddingHorizontal: 64, alignSelf: 'center', width: '100%', maxWidth: 600 },
-
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.pinkBack,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backArrow: { fontSize: 26, color: COLORS.primary, lineHeight: 30, marginTop: -2 },
 
   headingBlock: { alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 26, fontWeight: '700', color: COLORS.black, textAlign: 'center' },

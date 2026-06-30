@@ -4,14 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   ScrollView,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useResponsive } from '../../constants/responsive';
 
 const COLORS = {
   primary: '#E8573A',
@@ -29,11 +27,9 @@ const faceIdXml = `<svg width="67" height="71" viewBox="0 0 67 71" fill="none" x
 <path fill-rule="evenodd" clip-rule="evenodd" d="M11.1667 4.72045C7.46635 4.72045 4.46667 7.89057 4.46667 11.8011V23.6023H0V11.8011C0 5.28356 4.9995 0 11.1667 0H22.3333V4.72045H11.1667ZM55.8333 4.72045H44.6667V0H55.8333C62.0005 0 67 5.28356 67 11.8011V23.6023H62.5333V11.8011C62.5333 7.89057 59.5335 4.72045 55.8333 4.72045ZM22.3333 28.3227H17.8667V23.6023H22.3333V28.3227ZM49.1333 28.3227H44.6667V23.6023H49.1333V28.3227ZM21.8867 41.068C27.6933 49.2499 39.3067 49.2499 45.1133 41.068L48.6867 43.9002C41.0933 54.6001 25.9067 54.6001 18.3133 43.9002L21.8867 41.068ZM0 59.0057V47.2045H4.46667V59.0057C4.46667 62.9161 7.46635 66.0864 11.1667 66.0864H22.3333V70.8068H11.1667C4.9995 70.8068 0 65.5232 0 59.0057ZM67 47.2045V59.0057C67 65.5232 62.0005 70.8068 55.8333 70.8068H44.6667V66.0864H55.8333C59.5335 66.0864 62.5333 62.9161 62.5333 59.0057V47.2045H67Z" fill="black"/>
 </svg>`;
 
-const FaceIDIcon: React.FC<{ moderateScale: (size: number, factor?: number) => number }> = ({
-  moderateScale,
-}) => (
-  <View style={[fid.wrap, { width: moderateScale(BOX), height: moderateScale(BOX) }]}>
-    <SvgXml xml={faceIdXml} width={moderateScale(62)} height={moderateScale(66)} />
+const FaceIDIcon: React.FC = () => (
+  <View style={fid.wrap}>
+    <SvgXml xml={faceIdXml} width={62} height={66} />
   </View>
 );
 
@@ -41,6 +37,8 @@ const BOX = 110;
 
 const fid = StyleSheet.create({
   wrap: {
+    width: BOX,
+    height: BOX,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -55,16 +53,16 @@ const fingerprintXml = `<svg width="64" height="83" viewBox="0 0 64 83" fill="no
 <path d="M42.335 31.2498C42.335 30.8913 42.3273 30.5329 42.3146 30.1719H42.3172C42.3172 30.167 42.3146 30.1596 42.3146 30.1521C42.3146 30.1521 42.3146 30.1447 42.3146 30.1398C42.2942 24.8596 37.8799 20.5906 32.4329 20.5881C26.9732 20.5906 22.5486 24.8794 22.5486 30.1719V30.1619C22.4824 37.4469 20.1236 44.3437 16.811 50.4494C13.4984 56.5527 9.24226 61.8502 5.43743 65.9191C5.05993 66.3246 5.08801 66.9523 5.50891 67.3207C5.92721 67.6866 6.57482 67.6568 6.95231 67.249C10.8387 63.0935 15.1993 57.675 18.619 51.3714C22.0386 45.0704 24.5225 37.8743 24.5938 30.1792V30.1717C24.5938 28.0681 25.4684 26.177 26.8889 24.7976C28.3093 23.4208 30.2654 22.5704 32.4329 22.5704C34.598 22.5704 36.5539 23.4208 37.9742 24.7976C39.3946 26.177 40.2694 28.0681 40.2719 30.1717V30.189V30.2039C40.2821 30.55 40.2897 30.9009 40.2897 31.2494C40.2947 39.6467 36.8955 48.4025 32.2748 56.3549C27.6591 64.3097 21.8372 71.4538 17.0966 76.6672C16.7243 77.0776 16.7651 77.7055 17.1909 78.0663C17.6143 78.4272 18.2594 78.3877 18.6317 77.9773C23.4361 72.6922 29.3344 65.4567 34.0573 57.3288C38.7725 49.1987 42.3297 40.1686 42.335 31.2498Z" fill="black" stroke="black" stroke-width="1.536"/>
 </svg>`;
 
-const FingerprintIcon: React.FC<{ moderateScale: (size: number, factor?: number) => number }> = ({
-  moderateScale,
-}) => (
-  <View style={[fp.wrap, { width: moderateScale(80), height: moderateScale(80) }]}>
-    <SvgXml xml={fingerprintXml} width={moderateScale(62)} height={moderateScale(80)} />
+const FingerprintIcon: React.FC = () => (
+  <View style={fp.wrap}>
+    <SvgXml xml={fingerprintXml} width={62} height={80} />
   </View>
 );
 
 const fp = StyleSheet.create({
   wrap: {
+    width: 80,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -72,7 +70,6 @@ const fp = StyleSheet.create({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const BiometricSignInPage: React.FC = () => {
-  const { moderateScale } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
   const faceAnim = useRef(new Animated.Value(0)).current;
@@ -118,7 +115,7 @@ const BiometricSignInPage: React.FC = () => {
         >
           {/* ── Heading ── */}
           <View style={styles.headingBlock}>
-            <Text style={[styles.title, { fontSize: moderateScale(28) }]}>Quick access</Text>
+            <Text style={styles.title}>Quick access</Text>
             <Text style={styles.subtitle}>Confirm your identity instantly</Text>
           </View>
 
@@ -129,7 +126,7 @@ const BiometricSignInPage: React.FC = () => {
               activeOpacity={0.75}
               style={styles.bioIconWrap}
             >
-              <FaceIDIcon moderateScale={moderateScale} />
+              <FaceIDIcon />
             </TouchableOpacity>
             <View style={styles.labelPill}>
               <Text style={styles.labelPillText}>Face ID</Text>
@@ -143,7 +140,7 @@ const BiometricSignInPage: React.FC = () => {
               activeOpacity={0.75}
               style={styles.bioIconWrap}
             >
-              <FingerprintIcon moderateScale={moderateScale} />
+              <FingerprintIcon />
             </TouchableOpacity>
             <View style={styles.labelPill}>
               <Text style={styles.labelPillText}>Fingerprint</Text>
@@ -161,9 +158,7 @@ const BiometricSignInPage: React.FC = () => {
             onPress={handleUseOTP}
             activeOpacity={0.85}
           >
-            <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
-              Use OTP Instead
-            </Text>
+            <Text style={styles.btnPrimaryText}>Use OTP Instead</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>

@@ -34,19 +34,6 @@
             "imageWidth": 76
           }
         }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow Thebe Ya Batho to use your location to dispatch responders to you instantly."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/icon.png",
-          "color": "#E8573A"
-        }
       ]
     ],
     "experiments": {

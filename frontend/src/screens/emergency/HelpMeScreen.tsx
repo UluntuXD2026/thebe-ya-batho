@@ -1,28 +1,30 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   Platform,
   Linking,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import * as Location from "expo-location"
 
-import SOSScreen from './SOSScreen';
+import SOSScreen from "./SOSScreen";
+import { API_BASE_URL } from "../../lib/config";
 
-import { useResponsive } from '@/constants/responsive';
-import { useHardwareBack } from '@/hooks/useHardwareBack';
+const token =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiI2YTJmYzEzNWIzYTJhZjRiNzAwOThlYjAiLCJpYXQiOjE3ODE3NzQzODMsImV4cCI6MTc4NDM2NjM4M30.8a5WQnXcjQ1row3L1Zid5rKd5E5eSfpM-4esVklKc50";
 
 const COLORS = {
-  primary: '#E8573A',
-  primaryDark: '#C94428',
-  black: '#111111',
-  darkGray: '#333333',
-  borderGray: '#CCCCCC',
-  pageBg: '#FFFFFF',
+  primary: "#E8573A",
+  primaryDark: "#C94428",
+  black: "#111111",
+  darkGray: "#333333",
+  borderGray: "#CCCCCC",
+  pageBg: "#FFFFFF",
 };
 
 interface EmergencyOption {
@@ -32,9 +34,9 @@ interface EmergencyOption {
 }
 
 const EMERGENCY_OPTIONS: EmergencyOption[] = [
-  { id: 'ambulance', label: 'Call an ambulance', number: '10177' },
-  { id: 'police',    label: 'Call the Police',   number: '10111' },
-  { id: 'fire',      label: 'Call Fire Fighter',  number: '10111' },
+  { id: "ambulance", label: "Call an ambulance", number: "10177" },
+  { id: "police", label: "Call the Police", number: "10111" },
+  { id: "fire", label: "Call Fire Fighter", number: "10111" },
 ];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -43,40 +45,68 @@ interface Props {
 }
 
 const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
-  const { isTablet } = useResponsive();
   const [showSOS, setShowSOS] = useState(false);
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 350, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 60,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
-  const handleSelect = (option: EmergencyOption) => {
-    Linking.openURL(`tel:${option.number}`);
-    setShowSOS(true);
+  const handleSelect = async (option: EmergencyOption) => {
+    try {
+      const {status} = await Location.requestForegroundPermissionsAsync()
+
+      if(status !== "granted"){
+        alert("Location permission denied")
+        return
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      })
+
+      const lat = location.coords.latitude
+      const lng = location.coords.longitude
+
+      const res = await fetch(`${API_BASE_URL}/emergency/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: option.id,
+          location: { lat, lng },
+        }),
+      });
+
+      const data = await res.json();
+
+      console.log(data);
+
+      Linking.openURL(`tel:${option.number}`);
+      setShowSOS(true);
+    } catch (error) {
+      console.error("Location error:", error);
+    }
   };
 
   const handleCancel = () => {
     onCancel?.();
   };
-
-  useHardwareBack(
-    useCallback(() => {
-      if (showSOS) {
-        setShowSOS(false);
-        return true;
-      }
-      if (onCancel) {
-        onCancel();
-        return true;
-      }
-      return false;
-    }, [showSOS, onCancel]),
-  );
 
   if (showSOS) {
     return <SOSScreen onCancel={() => setShowSOS(false)} />;
@@ -89,7 +119,6 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
       <Animated.View
         style={[
           styles.inner,
-          isTablet && styles.innerTablet,
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
@@ -98,7 +127,7 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
 
         {/* ── Options ── */}
         <View style={styles.optionsBlock}>
-          {EMERGENCY_OPTIONS.map(option => (
+          {EMERGENCY_OPTIONS.map((option) => (
             <TouchableOpacity
               key={option.id}
               style={styles.optionBtn}
@@ -137,22 +166,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 48,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 32,
-  },
-  // On tablets/web, cap the content width and center it so options don't
-  // stretch edge-to-edge on very wide screens.
-  innerTablet: {
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
+    paddingBottom: Platform.OS === "ios" ? 24 : 32,
   },
 
   // Title
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.black,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 32,
   },
 
@@ -165,13 +187,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderGray,
     borderRadius: 14,
     paddingVertical: 20,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: COLORS.pageBg,
   },
   optionText: {
     fontSize: 16,
     color: COLORS.darkGray,
-    fontWeight: '400',
+    fontWeight: "400",
   },
 
   spacer: { flex: 1 },
@@ -181,7 +203,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -189,9 +211,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
 });

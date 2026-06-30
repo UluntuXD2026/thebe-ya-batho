@@ -4,12 +4,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useResponsive } from '../../constants/responsive';
 
 const COLORS = {
   primary: '#E8573A',
@@ -83,7 +82,6 @@ const AccountCreatedPage: React.FC<Props> = ({
   notificationsEnabled = true,
   onFinish,
 }) => {
-  const { moderateScale, isTablet } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -116,7 +114,7 @@ const AccountCreatedPage: React.FC<Props> = ({
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.inner, isTablet && styles.innerTablet]}>
+        <View style={styles.inner}>
           {/* ── Heading ── */}
           <Animated.View
             style={[
@@ -124,7 +122,7 @@ const AccountCreatedPage: React.FC<Props> = ({
               { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
             ]}
           >
-            <Text style={[styles.title, { fontSize: moderateScale(28) }]}>Account created!</Text>
+            <Text style={styles.title}>Account created!</Text>
             <Text style={styles.subtitle}>You can now use the app in emergencies</Text>
           </Animated.View>
 
@@ -173,7 +171,6 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 40,
   },
-  innerTablet: { paddingHorizontal: 64, alignSelf: 'center', width: '100%', maxWidth: 600 },
 
   headingBlock: {
     alignItems: 'center',

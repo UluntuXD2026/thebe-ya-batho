@@ -25,14 +25,11 @@ async function request<T>(
 export const registerNumber = (number: string) =>
   request<{ message: string }>('/auth/register', { method: 'POST', body: { number } });
 
-export const loginNumber = (number: string) =>
-  request<{ message: string }>('/auth/login', { method: 'POST', body: { number } });
-
 export const verifyCode = (number: string, code: string) =>
-  request<{ message: string; token: string; refreshToken: string; firstName?: string }>(
-    '/auth/verify',
-    { method: 'POST', body: { number, code } }
-  );
+  request<{ message: string; token: string; refreshToken: string }>('/auth/verify', {
+    method: 'POST',
+    body: { number, code },
+  });
 
 export const completeProfile = (token: string, firstName: string, lastName: string) =>
   request<{ message: string }>('/auth/complete-profile', {
@@ -40,34 +37,3 @@ export const completeProfile = (token: string, firstName: string, lastName: stri
     token,
     body: { firstName, lastName },
   });
-
-export interface EmergencyContact {
-  _id: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  to: { _id: string; firstName?: string; lastName?: string; number: string };
-}
-
-export const getEmergencyContacts = (token: string) =>
-  request<EmergencyContact[]>('/contacts/emergency-contacts', { token });
-
-export const sendContactRequest = (token: string, number: string) =>
-  request<{ message: string }>('/contacts/request', {
-    method: 'POST',
-    token,
-    body: { number },
-  });
-
-export interface ReceivedContactRequest {
-  _id: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  from: { _id: string; firstName?: string; lastName?: string; number: string };
-}
-
-export const getReceivedContactRequests = (token: string) =>
-  request<ReceivedContactRequest[]>('/contacts/see-requests-received', { token });
-
-export const acceptContactRequest = (token: string, id: string) =>
-  request<{ message: string }>(`/contacts/request/${id}/accept`, { method: 'POST', token });
-
-export const rejectContactRequest = (token: string, id: string) =>
-  request<{ message: string }>(`/contacts/request/${id}/reject`, { method: 'POST', token });

@@ -3,12 +3,13 @@ import {
   StyleSheet,
   Animated,
   StatusBar,
+  Dimensions,
   Easing,
   View,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
-import { useResponsive } from '../../constants/responsive';
+const { width: SW, height: SH } = Dimensions.get('window');
 
 // ── Logo SVG (tempLogo.svg) ───────────────────────────────────────────────────
 // Original viewBox: 1015 x 424  |  Left: circular logo image  |  Right: black text
@@ -30,13 +31,12 @@ interface Props {
 }
 
 const SplashScreen: React.FC<Props> = ({ onFinish }) => {
-  const { width } = useResponsive();
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const exitAnim  = useRef(new Animated.Value(1)).current;
 
   // Logo is 1015x424 — scale to 90% screen width, preserve aspect ratio
-  const logoWidth  = Math.min(width * 0.90, 420);
+  const logoWidth  = Math.min(SW * 0.90, 420);
   const logoHeight = logoWidth * (424 / 1015);
 
   useEffect(() => {
