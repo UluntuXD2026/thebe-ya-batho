@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // correctly on web/iOS simulator; Android emulator needs 10.0.2.2, and a
 // physical device needs your machine's LAN IP (e.g. 192.168.x.x).
 // Override by setting EXPO_PUBLIC_API_URL in frontend/.env.
-const DEV_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const DEV_HOST = Platform.OS === 'android' ? '192.168.1.58' : 'localhost';
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? `http://${DEV_HOST}:4000`;
+  process.env.EXPO_PUBLIC_API_URL ?? `http://${DEV_HOST}:8080`;

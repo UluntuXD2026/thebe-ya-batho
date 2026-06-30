@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   KeyboardAvoidingView,
@@ -13,11 +14,6 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { verifyCode } from '../../lib/api';
-import { useResponsive } from '../../constants/responsive';
-import { useHardwareBack } from '../../hooks/useHardwareBack';
 
 const COLORS = {
   primary: '#E8573A',
@@ -36,33 +32,11 @@ const CODE_LENGTH = 6;
 
 interface Props {
   phoneNumber?: string; // e.g. "+27_ _ _ _ _85"
-  onVerified?: (token: string, firstName?: string) => void;
-  onBack?: () => void;
-  onResend?: (phoneNumber: string) => Promise<unknown>;
 }
 
-const SignInOTPPage: React.FC<Props> = ({
-  phoneNumber = '+27_ _ _ _ _85',
-  onVerified,
-  onBack,
-  onResend,
-}) => {
-  const { moderateScale } = useResponsive();
-
-  useHardwareBack(
-    useCallback(() => {
-      if (onBack) {
-        onBack();
-        return true;
-      }
-      return false;
-    }, [onBack]),
-  );
-
+const SignInOTPPage: React.FC<Props> = ({ phoneNumber = '+27_ _ _ _ _85' }) => {
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [seconds, setSeconds] = useState(107);
-  const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState('');
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -104,38 +78,22 @@ const SignInOTPPage: React.FC<Props> = ({
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = () => {
     const fullCode = code.join('');
-    if (fullCode.length < CODE_LENGTH) {
-      setError('Enter the full 6-digit code');
-      return;
-    }
-    setError('');
-    setVerifying(true);
-    try {
-      const result = await verifyCode(phoneNumber, fullCode);
-      onVerified?.(result.token, result.firstName);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
-    } finally {
-      setVerifying(false);
-    }
+    // navigation.navigate('SignInSuccess', { method: 'OTP' });
+    console.log('Verify & Sign In:', fullCode);
   };
 
-  const handleResend = async () => {
+  const handleResend = () => {
     setSeconds(107);
     setCode(Array(CODE_LENGTH).fill(''));
-    setError('');
     inputRefs.current[0]?.focus();
-    try {
-      await onResend?.(phoneNumber);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend code');
-    }
+    console.log('Resend code');
   };
 
   const handleBack = () => {
-    onBack?.();
+    // navigation.goBack();
+    console.log('Go back');
   };
 
   const handleCallInstead = () => {
@@ -160,33 +118,20 @@ const SignInOTPPage: React.FC<Props> = ({
           >
             {/* ── Header row ── */}
             <View style={styles.headerRow}>
-              <TouchableOpacity
-                style={[
-                  styles.backBtn,
-                  { width: moderateScale(40), height: moderateScale(40) },
-                ]}
-                onPress={handleBack}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.backArrow, { fontSize: moderateScale(26) }]}>‹</Text>
+              <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
+                <Text style={styles.backArrow}>‹</Text>
               </TouchableOpacity>
               <View style={styles.headerCenter}>
-                <Text style={[styles.title, { fontSize: moderateScale(22) }]}>Enter Code</Text>
+                <Text style={styles.title}>Enter Code</Text>
                 <Text style={styles.subtitle}>Code sent to {phoneNumber}</Text>
               </View>
-              <View style={[styles.backBtnSpacer, { width: moderateScale(40) }]} />
+              <View style={styles.backBtnSpacer} />
             </View>
 
             {/* ── Timer ── */}
             <View style={styles.timerBlock}>
               <Text style={styles.timerLabel}>6 Digit code expires in</Text>
-              <Text
-                style={[
-                  styles.timerValue,
-                  { fontSize: moderateScale(40) },
-                  seconds < 30 && styles.timerWarning,
-                ]}
-              >
+              <Text style={[styles.timerValue, seconds < 30 && styles.timerWarning]}>
                 {formatTime(seconds)}
               </Text>
             </View>
@@ -197,11 +142,7 @@ const SignInOTPPage: React.FC<Props> = ({
                 <TextInput
                   key={i}
                   ref={el => { inputRefs.current[i] = el; }}
-                  style={[
-                    styles.otpBox,
-                    { fontSize: moderateScale(22) },
-                    code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty,
-                  ]}
+                  style={[styles.otpBox, code[i] ? styles.otpBoxFilled : styles.otpBoxEmpty]}
                   value={code[i]}
                   onChangeText={val => handleChange(val, i)}
                   onKeyPress={e => handleKeyPress(e, i)}
@@ -214,8 +155,6 @@ const SignInOTPPage: React.FC<Props> = ({
               ))}
             </View>
 
-            {!!error && <Text style={styles.errorText}>{error}</Text>}
-
             {/* ── Resend row ── */}
             <View style={styles.resendRow}>
               <Text style={styles.resendBase}>Didn't get code ? </Text>
@@ -226,14 +165,11 @@ const SignInOTPPage: React.FC<Props> = ({
 
             {/* ── Verify button ── */}
             <TouchableOpacity
-              style={[styles.btnPrimary, verifying && styles.btnDisabled]}
+              style={styles.btnPrimary}
               onPress={handleVerify}
               activeOpacity={0.85}
-              disabled={verifying}
             >
-              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
-                {verifying ? 'Verifying...' : 'Verify & Sign In'}
-              </Text>
+              <Text style={styles.btnPrimaryText}>Verify & Sign In</Text>
             </TouchableOpacity>
 
             {/* ── Call me instead ── */}
@@ -307,8 +243,6 @@ const styles = StyleSheet.create({
   otpBoxEmpty: { backgroundColor: COLORS.pageBg },
   otpBoxFilled: { backgroundColor: COLORS.pageBg, borderColor: COLORS.darkGray },
 
-  errorText: { fontSize: 13, color: COLORS.primary, textAlign: 'center', marginBottom: 12 },
-
   // Resend
   resendRow: {
     flexDirection: 'row',
@@ -333,7 +267,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   btnPrimaryText: { color: '#FFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.4 },
-  btnDisabled: { opacity: 0.6 },
 
   // Call instead
   callRow: {

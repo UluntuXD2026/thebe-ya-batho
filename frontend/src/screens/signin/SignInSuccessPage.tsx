@@ -4,13 +4,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useResponsive } from '../../constants/responsive';
 
 const COLORS = {
   primary: '#E8573A',
@@ -56,16 +54,15 @@ const row = StyleSheet.create({
 // ── Main Component ────────────────────────────────────────────────────────────
 interface Props {
   method?: 'OTP Verified' | 'Biometric' | 'Face ID';
+  sessionExpiry?: string;
   locationShared?: string;
-  onFinish?: () => void;
 }
 
 const SignInSuccessPage: React.FC<Props> = ({
   method = 'OTP Verified',
+  sessionExpiry = '8 hours',
   locationShared = 'Active',
-  onFinish,
 }) => {
-  const { moderateScale } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -95,7 +92,8 @@ const SignInSuccessPage: React.FC<Props> = ({
   }, []);
 
   const handleGoToEmergency = () => {
-    onFinish?.();
+    // navigation.reset({ index: 0, routes: [{ name: 'EmergencyScreen' }] });
+    console.log('Navigating to Emergency Screen');
   };
 
   return (
@@ -113,9 +111,7 @@ const SignInSuccessPage: React.FC<Props> = ({
               { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
             ]}
           >
-            <Text style={[styles.title, { fontSize: moderateScale(28) }]}>
-              Signed In successfully
-            </Text>
+            <Text style={styles.title}>Signed In successfully</Text>
             <Text style={styles.subtitle}>
               Redirecting to emergency dashboard
             </Text>
@@ -127,6 +123,7 @@ const SignInSuccessPage: React.FC<Props> = ({
               <Text style={styles.cardHeaderText}>SESSION INFO</Text>
             </View>
             <InfoRow label="Method Used" value={method} />
+            <InfoRow label="Session expires" value={sessionExpiry} />
             <InfoRow label="Location shared" value={locationShared} isLast />
           </Animated.View>
 
@@ -142,9 +139,7 @@ const SignInSuccessPage: React.FC<Props> = ({
               onPress={handleGoToEmergency}
               activeOpacity={0.85}
             >
-              <Text style={[styles.btnPrimaryText, { fontSize: moderateScale(16) }]}>
-                GO to Emergency Screen
-              </Text>
+              <Text style={styles.btnPrimaryText}>GO to Emergency Screen</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>

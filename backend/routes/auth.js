@@ -64,8 +64,7 @@ router.post("/register", async (req, res) => {
 
     await newUser.save();
 
-    //code is temporarily revealed in the response message and server logs just for testing
-    console.log(`[OTP] register ${normalizedNumber}: ${code}`);
+    //code is temporarily revealed in the response message just for testing
     res
       .status(201)
       .json({ message: `verification code ${code} sent to ${number}` });
@@ -98,7 +97,7 @@ router.post("/verify", async (req, res) => {
     }
 
     //create an access token and refresh token for in case access token expires
-    const token = jwt.sign({ userid: user._id }, jwtKey, { expiresIn: "15m" });
+    const token = jwt.sign({ userid: user._id }, jwtKey, { expiresIn: "30d" });
     const refreshToken = jwt.sign({ userid: user._id }, refreshKey, {
       expiresIn: "90d",
     });
@@ -110,12 +109,9 @@ router.post("/verify", async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({
-      message: "user logged in successfully",
-      token,
-      refreshToken,
-      firstName: user.firstName,
-    });
+    res
+      .status(200)
+      .json({ message: "user logged in successfully", token, refreshToken });
   } catch (err) {
     res.status(500).json({ message: "internal server error", err });
   }
@@ -148,7 +144,6 @@ router.post("/login", async (req, res) => {
 
     await user.save();
 
-    console.log(`[OTP] login ${normalized}: ${code}`);
     res
       .status(201)
       .json({ message: `verification code ${code} sent to ${number}` });
@@ -197,7 +192,7 @@ router.post("/refresh", async (req, res) => {
     }
 
     const accessToken = jwt.sign({ userid: user._id }, jwtKey, {
-      expiresIn: "15m",
+      expiresIn: "30d",
     });
 
     res.status(200).json({ accessToken });

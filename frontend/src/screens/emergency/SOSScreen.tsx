@@ -1,19 +1,19 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   StatusBar,
   Animated,
   Easing,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useResponsive } from '@/constants/responsive';
-import { useHardwareBack } from '@/hooks/useHardwareBack';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
   pageBg: '#1E2347',
@@ -110,12 +110,6 @@ interface Props {
 }
 
 const SOSScreen: React.FC<Props> = ({ onCancel }) => {
-  const { width, height, moderateScale } = useResponsive();
-  // Cap the SOS area so it never becomes an absurdly tall/short box on
-  // unusual aspect ratios (landscape, tablets, ultra-tall phones).
-  const sosAreaSize = Math.min(width, height * 0.5) * 0.85;
-  const actionBtnSize = moderateScale(60);
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
   // Subtle SOS button breathe
   const breatheAnim = useRef(new Animated.Value(1)).current;
@@ -151,16 +145,6 @@ const SOSScreen: React.FC<Props> = ({ onCancel }) => {
     onCancel?.();
   };
 
-  useHardwareBack(
-    useCallback(() => {
-      if (onCancel) {
-        onCancel();
-        return true;
-      }
-      return false;
-    }, [onCancel]),
-  );
-
   const handleCall = () => {
     // Linking.openURL('tel:10111') or connect to dispatcher
     console.log('Call emergency services');
@@ -190,12 +174,7 @@ const SOSScreen: React.FC<Props> = ({ onCancel }) => {
         </View>
 
         {/* ── SOS button + rings ── */}
-        <View
-          style={[
-            styles.sosContainer,
-            { width: sosAreaSize, height: sosAreaSize },
-          ]}
-        >
+        <View style={styles.sosContainer}>
           {/* Dashed rings rendered behind the button */}
           {rings.map((r, i) => (
             <PulseRing key={i} delay={r.delay} maxScale={r.maxScale} />
@@ -215,15 +194,7 @@ const SOSScreen: React.FC<Props> = ({ onCancel }) => {
         <View style={styles.actionRow}>
           {/* Cancel */}
           <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.cancelBtn,
-              {
-                width: actionBtnSize,
-                height: actionBtnSize,
-                borderRadius: actionBtnSize / 2,
-              },
-            ]}
+            style={[styles.actionBtn, styles.cancelBtn]}
             onPress={handleCancel}
             activeOpacity={0.8}
           >
@@ -232,15 +203,7 @@ const SOSScreen: React.FC<Props> = ({ onCancel }) => {
 
           {/* Call */}
           <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              styles.callBtn,
-              {
-                width: actionBtnSize,
-                height: actionBtnSize,
-                borderRadius: actionBtnSize / 2,
-              },
-            ]}
+            style={[styles.actionBtn, styles.callBtn]}
             onPress={handleCall}
             activeOpacity={0.8}
           >
@@ -286,8 +249,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // SOS area (width/height applied inline via sosAreaSize, see component)
+  // SOS area
   sosContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH * 0.85,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -326,8 +291,10 @@ const styles = StyleSheet.create({
     width: '70%',
     marginBottom: 8,
   },
-  // width/height/borderRadius applied inline via actionBtnSize, see component
   actionBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     shadowOffset: { width: 0, height: 4 },

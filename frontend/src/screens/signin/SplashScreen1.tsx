@@ -3,11 +3,12 @@ import {
   StyleSheet,
   Animated,
   StatusBar,
+  Dimensions,
   Easing,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
-import { useResponsive } from '../../constants/responsive';
+const { width: SW } = Dimensions.get('window');
 
 // ── Inline logo from elephantLogo.svg (182×237) ───────────────────────────
 const elephantLogoXml = `<svg viewBox="0 0 182 237" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,13 +46,12 @@ interface Props {
 }
 
 const SplashScreen: React.FC<Props> = ({ onFinish }) => {
-  const { width } = useResponsive();
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const exitAnim  = useRef(new Animated.Value(1)).current;
 
   // Scale logo to 60% screen width, max 280px (portrait logo)
-  const logoWidth = Math.min(width * 0.6, 280);
+  const logoWidth = Math.min(SW * 0.6, 280);
 
   useEffect(() => {
     Animated.sequence([

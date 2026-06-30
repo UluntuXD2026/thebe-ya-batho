@@ -206,4 +206,19 @@ router.delete("/emergency-contact-remove/:id", authenticateToken, async(req, res
   }
 })
 
+router.get("/get-name/:id", authenticateToken, async(req, res) => {
+  try{
+    const user = await User.findById(req.params.id)
+
+    if(!user){
+      return res.status(404).json({message: "no user found"})
+    }
+
+    res.status(200).json({name: `${user.firstName} ${user.lastName}`})
+  }
+  catch(err){
+    res.status(500).json({ message: "internal server error", err });
+  }
+})
+
 module.exports = router;

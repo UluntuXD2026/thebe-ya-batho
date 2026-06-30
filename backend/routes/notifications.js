@@ -11,4 +11,18 @@ router.get("/", authenticateToken, async(req, res) => {
     res.json(notifications)
 })
 
+router.post("/mark-read/:id", authenticateToken, async(req, res) => {
+    const notification = await Notifications.findById(req.params.id)
+
+    if(!notification){
+        return res.status(404).json({message: "notification not found"})
+    }
+
+    notification.read = true
+
+    await notification.save()
+
+    res.status(200).json({message: "notification marked as read"})
+})
+
 module.exports = router;
