@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "211420582868",
+    "project_id": "thebe-ya-batho",
+    "storage_bucket": "thebe-ya-batho.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211420582868:android:9fc7ec4efc7ae4bec6bc41",
+        "android_client_info": {
+          "package_name": "com.thebeyabatho.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARzk10vQLSArRskNaZeMlPnUPGSWlH6kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

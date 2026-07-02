@@ -71,7 +71,7 @@ const dots = StyleSheet.create({
 // ── OTP Verification Page ─────────────────────────────────────────────────────
 interface Props {
   phoneNumber?: string; // e.g. "+27821234585"
-  onVerified?: (token: string) => void;
+  onVerified?: (token: string, firstName?: string) => void;
   onBack?: () => void;
   onResend?: (phoneNumber: string) => Promise<unknown>;
 }

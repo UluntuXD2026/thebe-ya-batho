@@ -15,7 +15,7 @@ const EmergencyAlertSchema = new mongoose.Schema({
 
     location: {
         lat: Number,
-        lan: Number
+        lng: Number
     },
 
     status: {

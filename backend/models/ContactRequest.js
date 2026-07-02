@@ -19,6 +19,9 @@ const ContactRequestSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    AppUser: {
+        type: Boolean,
     }
 })
 

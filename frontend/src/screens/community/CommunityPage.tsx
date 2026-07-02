@@ -367,7 +367,7 @@ const CommunityPage: React.FC<Props> = ({ token, onBack }) => {
   }
 
   if (showHelpMe) {
-    return <HelpMeScreen onCancel={() => setShowHelpMe(false)} />;
+    return <HelpMeScreen onCancel={() => setShowHelpMe(false)} token={token} />;
   }
 
   return (

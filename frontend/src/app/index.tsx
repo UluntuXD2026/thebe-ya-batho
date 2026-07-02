@@ -1,31 +1,33 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { useHardwareBack } from '@/hooks/useHardwareBack';
-import { loginNumber } from '@/lib/api';
-import HomePage from '@/screens/homepage/HomePage';
-import LandingPage from '@/screens/signin/LandingPage';
-import SignInOTPPage from '@/screens/signin/SignInOTPPage';
-import SignInPage from '@/screens/signin/SignInPage';
-import SignInSuccessPage from '@/screens/signin/SignInSuccessPage';
-import SignUpPage from '@/screens/signin/SignUpPage';
-import SplashScreen from '@/screens/signin/SplashScreenTemp';
-import AccountCreatedPage from '@/screens/signup/AccountCreatedPage';
-import OTPVerificationPage from '@/screens/signup/OTPVerificationPage';
-import PermissionRequestPage from '@/screens/signup/PermissionRequestPage';
-import PersonalDetailsPage from '@/screens/signup/PersonalDetailsPage';
+import { useHardwareBack } from "@/hooks/useHardwareBack";
+import { loginNumber } from "@/lib/api";
+import HomePage from "@/screens/homepage/HomePage";
+import LandingPage from "@/screens/signin/LandingPage";
+import SignInOTPPage from "@/screens/signin/SignInOTPPage";
+import SignInPage from "@/screens/signin/SignInPage";
+import SignInSuccessPage from "@/screens/signin/SignInSuccessPage";
+import SignUpPage from "@/screens/signin/SignUpPage";
+import SplashScreen from "@/screens/signin/SplashScreenTemp";
+import AccountCreatedPage from "@/screens/signup/AccountCreatedPage";
+import OTPVerificationPage from "@/screens/signup/OTPVerificationPage";
+import PermissionRequestPage from "@/screens/signup/PermissionRequestPage";
+import PersonalDetailsPage from "@/screens/signup/PersonalDetailsPage";
+import { clearToken, getToken, saveToken } from "@/lib/auth";
 
 type Screen =
-  | 'splash'
-  | 'landing'
-  | 'signin'
-  | 'signinOtp'
-  | 'signinSuccess'
-  | 'signup'
-  | 'signupOtp'
-  | 'signupDetails'
-  | 'signupPermissions'
-  | 'signupDone'
-  | 'home';
+  | "splash"
+  | "landing"
+  | "signin"
+  | "signinOtp"
+  | "signinSuccess"
+  | "signup"
+  | "signupOtp"
+  | "signupDetails"
+  | "signupPermissions"
+  | "signupDone"
+  | "home";
 
 // Mirrors each screen's own `onBack` target below, so the Android hardware
 // back button reproduces exactly what pressing that screen's back button does.
@@ -33,22 +35,42 @@ type Screen =
 // have no "previous page" to return to, so hardware back falls through to
 // the OS default (exit app) for those.
 const BACK_TARGET: Partial<Record<Screen, Screen>> = {
-  signin: 'landing',
-  signinOtp: 'signin',
-  signup: 'landing',
-  signupOtp: 'signup',
-  signupDetails: 'signupOtp',
-  signupPermissions: 'signupDetails',
+  signin: "landing",
+  signinOtp: "signin",
+  signup: "landing",
+  signupOtp: "signup",
+  signupDetails: "signupOtp",
+  signupPermissions: "signupDetails",
 };
 
 export default function HomeScreen() {
-  const [screen, setScreen] = useState<Screen>('splash');
-  const [signinPhone, setSigninPhone] = useState('');
-  const [signupPhone, setSignupPhone] = useState('');
-  const [accessToken, setAccessToken] = useState('');
+  const [screen, setScreen] = useState<Screen>("splash");
+  const [signinPhone, setSigninPhone] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [userFirstName, setUserFirstName] = useState('');
+  const [userFirstName, setUserFirstName] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSession = async () => {
+      const token = await getToken();
+      const firstName = await AsyncStorage.getItem("firstName");
+
+      if (token) {
+        setAccessToken(token);
+        if (firstName) setUserFirstName(firstName);
+        setScreen("home");
+      } else {
+        setScreen("landing");
+      }
+
+      setLoading(false);
+    };
+
+    loadSession();
+  }, []);
 
   useHardwareBack(
     useCallback(() => {
@@ -59,112 +81,148 @@ export default function HomeScreen() {
     }, [screen]),
   );
 
-  if (screen === 'splash') {
-    return <SplashScreen onFinish={() => setScreen('landing')} />;
+  if (loading) {
+    return <SplashScreen />;
   }
 
-  if (screen === 'signin') {
+  // if (screen === "splash") {
+  //   return <SplashScreen onFinish={() => setScreen("landing")} />;
+  // }
+
+  if (screen === "signin") {
     return (
       <SignInPage
-        onBack={() => setScreen('landing')}
-        onOtpSent={phone => {
+        onBack={() => setScreen("landing")}
+        onOtpSent={(phone) => {
           setSigninPhone(phone);
-          setScreen('signinOtp');
+          setScreen("signinOtp");
         }}
       />
     );
   }
 
-  if (screen === 'signinOtp') {
+  if (screen === "signinOtp") {
     return (
       <SignInOTPPage
         phoneNumber={signinPhone}
-        onBack={() => setScreen('signin')}
+        onBack={() => setScreen("signin")}
         onResend={loginNumber}
-        onVerified={(token, firstName) => {
+        onVerified={async (token, firstName) => {
+          await saveToken(token);
+
           setAccessToken(token);
-          if (firstName) setUserFirstName(firstName);
-          setScreen('signinSuccess');
+
+          const safeName = firstName ?? "";
+
+          await AsyncStorage.setItem("firstName", safeName);
+          setUserFirstName(safeName);
+
+          setScreen("signinSuccess");
         }}
       />
     );
   }
 
-  if (screen === 'signinSuccess') {
-    return <SignInSuccessPage onFinish={() => setScreen('home')} />;
+  if (screen === "signinSuccess") {
+    return <SignInSuccessPage onFinish={() => setScreen("home")} />;
   }
 
-  if (screen === 'signup') {
+  if (screen === "signup") {
     return (
       <SignUpPage
-        onBack={() => setScreen('landing')}
-        onSignIn={() => setScreen('signin')}
-        onCodeSent={phone => {
+        onBack={() => setScreen("landing")}
+        onSignIn={() => setScreen("signin")}
+        onCodeSent={(phone) => {
           setSignupPhone(phone);
-          setScreen('signupOtp');
+          setScreen("signupOtp");
         }}
       />
     );
   }
 
-  if (screen === 'signupOtp') {
+  if (screen === "signupOtp") {
     return (
       <OTPVerificationPage
         phoneNumber={signupPhone}
-        onBack={() => setScreen('signup')}
-        onVerified={token => {
+        onBack={() => setScreen("signup")}
+        onVerified={async (token, firstName) => {
+          await saveToken(token);
           setAccessToken(token);
-          setScreen('signupDetails');
+          
+          const safeName = firstName ?? ""
+
+          await AsyncStorage.setItem("firstName", safeName)
+          setUserFirstName(safeName)
+
+          setScreen("signupDetails");
         }}
       />
     );
   }
 
-  if (screen === 'signupDetails') {
+  if (screen === "signupDetails") {
     return (
       <PersonalDetailsPage
         token={accessToken}
-        onBack={() => setScreen('signupOtp')}
-        onContinue={firstName => {
+        onBack={() => setScreen("signupOtp")}
+        onContinue={(firstName) => {
           setUserFirstName(firstName);
-          setScreen('signupPermissions');
+          setScreen("signupPermissions");
         }}
       />
     );
   }
 
-  if (screen === 'signupPermissions') {
+  if (screen === "signupPermissions") {
     return (
       <PermissionRequestPage
-        onBack={() => setScreen('signupDetails')}
-        onContinue={granted => {
+        onBack={() => setScreen("signupDetails")}
+        onContinue={(granted) => {
           setLocationEnabled(granted.location);
           setNotificationsEnabled(granted.notifications);
-          setScreen('signupDone');
+          setScreen("signupDone");
         }}
       />
     );
   }
 
-  if (screen === 'signupDone') {
+  if (screen === "signupDone") {
     return (
       <AccountCreatedPage
         phoneNumber={signupPhone}
         locationEnabled={locationEnabled}
         notificationsEnabled={notificationsEnabled}
-        onFinish={() => setScreen('home')}
+        onFinish={() => setScreen("home")}
       />
     );
   }
 
-  if (screen === 'home') {
-    return <HomePage firstName={userFirstName} token={accessToken} />;
+  if (screen === "home") {
+    return (
+      <HomePage
+        firstName={userFirstName}
+        token={accessToken}
+        onLogout={async () => {
+          await clearToken();
+
+          setAccessToken("");
+          setUserFirstName("");
+          setSigninPhone("");
+          setSignupPhone("");
+          setLocationEnabled(false);
+          setNotificationsEnabled(false);
+
+          // Go back to the start
+          setScreen("landing");
+        }}
+      />
+    );
   }
 
   return (
     <LandingPage
-      onSignIn={() => setScreen('signin')}
-      onCreateAccount={() => setScreen('signup')}
+      onSignIn={() => setScreen("signin")}
+      onCreateAccount={() => setScreen("signup")}
     />
   );
 }

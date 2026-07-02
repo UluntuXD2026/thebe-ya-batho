@@ -28,6 +28,9 @@ export const registerNumber = (number: string) =>
 export const loginNumber = (number: string) =>
   request<{ message: string }>('/auth/login', { method: 'POST', body: { number } });
 
+export const logout = (token: string) =>
+  request<{ message: string }>('/auth/logout', { method: 'POST', token });
+
 export const verifyCode = (number: string, code: string) =>
   request<{ message: string; token: string; refreshToken: string; firstName?: string }>(
     '/auth/verify',
@@ -71,3 +74,10 @@ export const acceptContactRequest = (token: string, id: string) =>
 
 export const rejectContactRequest = (token: string, id: string) =>
   request<{ message: string }>(`/contacts/request/${id}/reject`, { method: 'POST', token });
+
+export const savePushToken = (token: string, pushToken: string) =>
+  request<{ message: string }>('/contacts/push-token', {
+    method: 'POST',
+    token,
+    body: { pushToken },
+  });

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,21 +8,24 @@ import {
   Animated,
   Platform,
   Linking,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location"
 
-import SOSScreen from './SOSScreen';
+import SOSScreen from "./SOSScreen";
 
-import { useResponsive } from '@/constants/responsive';
-import { useHardwareBack } from '@/hooks/useHardwareBack';
+import { useResponsive } from "@/constants/responsive";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
+
+import { API_BASE_URL } from "@/lib/config";
 
 const COLORS = {
-  primary: '#E8573A',
-  primaryDark: '#C94428',
-  black: '#111111',
-  darkGray: '#333333',
-  borderGray: '#CCCCCC',
-  pageBg: '#FFFFFF',
+  primary: "#E8573A",
+  primaryDark: "#C94428",
+  black: "#111111",
+  darkGray: "#333333",
+  borderGray: "#CCCCCC",
+  pageBg: "#FFFFFF",
 };
 
 interface EmergencyOption {
@@ -32,32 +35,98 @@ interface EmergencyOption {
 }
 
 const EMERGENCY_OPTIONS: EmergencyOption[] = [
-  { id: 'ambulance', label: 'Call an ambulance', number: '10177' },
-  { id: 'police',    label: 'Call the Police',   number: '10111' },
-  { id: 'fire',      label: 'Call Fire Fighter',  number: '10111' },
+  { id: "ambulance", label: "Call an ambulance", number: "10177" },
+  { id: "police", label: "Call the Police", number: "10111" },
+  { id: "fire", label: "Call Fire Fighter", number: "10111" },
 ];
 
 // ── Main Component ────────────────────────────────────────────────────────────
 interface Props {
   onCancel?: () => void;
+  token?: string;
 }
 
-const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
+const HelpMeScreen: React.FC<Props> = ({ onCancel, token }) => {
   const { isTablet } = useResponsive();
   const [showSOS, setShowSOS] = useState(false);
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 350, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 60,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
-  const handleSelect = (option: EmergencyOption) => {
+  const handleSelect = async (option: EmergencyOption) => {
+    // Try to get a location fix, but never let a location failure block the
+    // call — dialing emergency services matters more than having coordinates.
+    let lat: number | undefined;
+    let lng: number | undefined;
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        lat = location.coords.latitude;
+        lng = location.coords.longitude;
+      }
+    } catch (error) {
+      console.error("Location error:", error);
+      // No location available — we still proceed with the alert/call below.
+    }
+
+    // Try to notify the backend (and in turn the user's emergency contacts).
+    // This is best-effort: if it fails, the user still needs to be connected
+    // to emergency services, and needs to know their contacts may not have
+    // been notified.
+    let notifiedContacts = false;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/emergency/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: option.id,
+          location: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
+      }
+
+      await res.json();
+      notifiedContacts = true;
+    } catch (error) {
+      console.error("Emergency alert error:", error);
+      alert(
+        "Couldn't reach the server, so your emergency contacts may not have been notified. Dialing emergency services now."
+      );
+    }
+
+    // Always dial, regardless of whether the backend call succeeded.
     Linking.openURL(`tel:${option.number}`);
-    setShowSOS(true);
+
+    if (notifiedContacts) {
+      setShowSOS(true);
+    }
   };
 
   const handleCancel = () => {
@@ -98,7 +167,7 @@ const HelpMeScreen: React.FC<Props> = ({ onCancel }) => {
 
         {/* ── Options ── */}
         <View style={styles.optionsBlock}>
-          {EMERGENCY_OPTIONS.map(option => (
+          {EMERGENCY_OPTIONS.map((option) => (
             <TouchableOpacity
               key={option.id}
               style={styles.optionBtn}
@@ -137,22 +206,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 48,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 32,
+    paddingBottom: Platform.OS === "ios" ? 24 : 32,
   },
   // On tablets/web, cap the content width and center it so options don't
   // stretch edge-to-edge on very wide screens.
   innerTablet: {
-    width: '100%',
+    width: "100%",
     maxWidth: 480,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
 
   // Title
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.black,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 32,
   },
 
@@ -165,13 +234,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderGray,
     borderRadius: 14,
     paddingVertical: 20,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: COLORS.pageBg,
   },
   optionText: {
     fontSize: 16,
     color: COLORS.darkGray,
-    fontWeight: '400',
+    fontWeight: "400",
   },
 
   spacer: { flex: 1 },
@@ -181,7 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: COLORS.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -189,9 +258,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
 });
